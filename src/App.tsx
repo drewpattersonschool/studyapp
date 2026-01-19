@@ -13,6 +13,18 @@ const setDarkMode = (enabled: boolean) => {
   localStorage.setItem('darkMode', String(enabled));
 };
 
+const getUserData = () => {
+  const data = localStorage.getItem('userData');
+  if (data) {
+    return JSON.parse(data);
+  }
+  return { level: 1, xp: 0, sessionsCompleted: 0 };
+};
+
+const saveUserData = (data: { level: number; xp: number; sessionsCompleted: number }) => {
+  localStorage.setItem('userData', JSON.stringify(data));
+};
+
 const getStoredStreak = () => {
   const data = localStorage.getItem('studyStreak');
   if (data) {
@@ -49,75 +61,275 @@ const updateStreak = () => {
   return newStreak;
 };
 
+// --- GAME LOGIC ---
+const calculateXpForLevel = (level: number) => {
+  return 100 * level; // Level 1 needs 100 XP, Level 2 needs 200 XP, etc.
+};
+
+const getCharacterStage = (level: number) => {
+  if (level < 5) return 0; // Seed
+  if (level < 15) return 1; // Sprout
+  if (level < 30) return 2; // Flower
+  return 3; // Tree
+};
+
+const getBackgroundTheme = (level: number) => {
+  if (level < 10) return 'morning'; // Cyan/Mint/Lavender
+  if (level < 20) return 'twilight'; // Purple/Pink/Indigo
+  return 'golden'; // Gold/Orange/Amber
+};
+
 // --- SOFT ANIMATIONS ---
 const SOFT_SPRING = { type: "spring" as const, stiffness: 100, damping: 20 };
 const GENTLE_PRESS = { scale: 0.96 };
 
+// --- BACKGROUND THEMES ---
+const BACKGROUND_THEMES = {
+  morning: {
+    gradient: 'linear-gradient(180deg, #F0F4FF 0%, #F5F0FF 50%, #F0FFF5 100%)',
+    orbs: [
+      { color: 'rgba(230, 210, 255, 0.4)', size: 500 },
+      { color: 'rgba(200, 255, 230, 0.35)', size: 450 },
+      { color: 'rgba(200, 230, 255, 0.38)', size: 480 }
+    ]
+  },
+  twilight: {
+    gradient: 'linear-gradient(180deg, #1E1B4B 0%, #4C1D95 50%, #831843 100%)',
+    orbs: [
+      { color: 'rgba(167, 139, 250, 0.3)', size: 500 },
+      { color: 'rgba(236, 72, 153, 0.25)', size: 450 },
+      { color: 'rgba(99, 102, 241, 0.28)', size: 480 }
+    ]
+  },
+  golden: {
+    gradient: 'linear-gradient(180deg, #FEF3C7 0%, #FDE68A 50%, #FBBF24 100%)',
+    orbs: [
+      { color: 'rgba(251, 191, 36, 0.3)', size: 500 },
+      { color: 'rgba(249, 115, 22, 0.25)', size: 450 },
+      { color: 'rgba(245, 158, 11, 0.28)', size: 480 }
+    ]
+  }
+};
+
 // --- ANIMATED MESH GRADIENT BACKGROUND ---
-const AnimatedMeshGradient: React.FC = () => (
-  <>
-    {/* Lavender Orb */}
-    <motion.div
+const AnimatedMeshGradient: React.FC<{ theme: 'morning' | 'twilight' | 'golden' }> = ({ theme }) => {
+  const orbs = BACKGROUND_THEMES[theme].orbs;
+
+  return (
+    <>
+      <motion.div
+        animate={{
+          x: [0, 150, -100, 0],
+          y: [0, -100, 150, 0],
+          scale: [1, 1.2, 0.8, 1],
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: 'absolute',
+          top: '5%',
+          left: '15%',
+          width: orbs[0].size,
+          height: orbs[0].size,
+          background: `radial-gradient(circle, ${orbs[0].color} 0%, transparent 70%)`,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
+      <motion.div
+        animate={{
+          x: [0, -130, 120, 0],
+          y: [0, 120, -90, 0],
+          scale: [1, 0.9, 1.1, 1],
+        }}
+        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: 'absolute',
+          top: '40%',
+          right: '10%',
+          width: orbs[1].size,
+          height: orbs[1].size,
+          background: `radial-gradient(circle, ${orbs[1].color} 0%, transparent 70%)`,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
+      <motion.div
+        animate={{
+          x: [0, 100, -140, 0],
+          y: [0, -130, 80, 0],
+          scale: [1, 1.1, 0.85, 1],
+        }}
+        transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: 'absolute',
+          bottom: '10%',
+          left: '50%',
+          width: orbs[2].size,
+          height: orbs[2].size,
+          background: `radial-gradient(circle, ${orbs[2].color} 0%, transparent 70%)`,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
+    </>
+  );
+};
+
+// --- KAWAII SPROUT CHARACTER (SVG) ---
+const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 120, level }) => {
+  const [isBlinking, setIsBlinking] = useState(false);
+  const stage = getCharacterStage(level);
+  const scale = 1 + (stage * 0.15); // Grows 15% per stage
+
+  // Random blink effect
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 150);
+    }, Math.random() * 2000 + 3000); // 3-5s
+
+    return () => clearInterval(blinkInterval);
+  }, []);
+
+  return (
+    <motion.svg
+      width={size * scale}
+      height={size * scale}
+      viewBox="0 0 100 100"
       animate={{
-        x: [0, 150, -100, 0],
-        y: [0, -100, 150, 0],
-        scale: [1, 1.2, 0.8, 1],
+        rotate: [-2, 2, -2],
+        scale: [1, 1.03, 1],
       }}
-      transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-      style={{
-        position: 'absolute',
-        top: '5%',
-        left: '15%',
-        width: 500,
-        height: 500,
-        background: 'radial-gradient(circle, rgba(230, 210, 255, 0.4) 0%, transparent 70%)',
-        filter: 'blur(80px)',
-        pointerEvents: 'none',
-        zIndex: 0
+      transition={{
+        rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+        scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
       }}
-    />
-    {/* Mint Orb */}
-    <motion.div
-      animate={{
-        x: [0, -130, 120, 0],
-        y: [0, 120, -90, 0],
-        scale: [1, 0.9, 1.1, 1],
-      }}
-      transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
-      style={{
-        position: 'absolute',
-        top: '40%',
-        right: '10%',
-        width: 450,
-        height: 450,
-        background: 'radial-gradient(circle, rgba(200, 255, 230, 0.35) 0%, transparent 70%)',
-        filter: 'blur(80px)',
-        pointerEvents: 'none',
-        zIndex: 0
-      }}
-    />
-    {/* Pale Blue Orb */}
-    <motion.div
-      animate={{
-        x: [0, 100, -140, 0],
-        y: [0, -130, 80, 0],
-        scale: [1, 1.1, 0.85, 1],
-      }}
-      transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-      style={{
-        position: 'absolute',
-        bottom: '10%',
-        left: '50%',
-        width: 480,
-        height: 480,
-        background: 'radial-gradient(circle, rgba(200, 230, 255, 0.38) 0%, transparent 70%)',
-        filter: 'blur(80px)',
-        pointerEvents: 'none',
-        zIndex: 0
-      }}
-    />
-  </>
-);
+    >
+      <defs>
+        {/* Body Gradient */}
+        <radialGradient id="bodyGradient" cx="50%" cy="30%">
+          <stop offset="0%" stopColor="#A7F3D0" />
+          <stop offset="100%" stopColor="#34D399" />
+        </radialGradient>
+        {/* Shadow */}
+        <ellipse id="shadow" cx="50" cy="85" rx="20" ry="5" fill="rgba(0,0,0,0.1)" />
+      </defs>
+
+      {/* Shadow */}
+      <use href="#shadow" />
+
+      {/* Body - Organic bean shape using path */}
+      <motion.path
+        d="M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z"
+        fill="url(#bodyGradient)"
+        animate={{
+          d: [
+            "M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z",
+            "M 36 42 Q 31 50, 33 60 Q 36 69, 43 74 Q 50 77, 57 74 Q 64 69, 67 60 Q 69 50, 64 42 Q 60 32, 50 30 Q 41 32, 36 42 Z",
+            "M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z"
+          ]
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Left Leaf - Teardrop shape */}
+      <motion.g
+        animate={{
+          rotate: [-5, 5, -5],
+          originX: "40px",
+          originY: "25px"
+        }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <path
+          d="M 40 25 Q 35 20, 32 18 Q 30 16, 28 18 Q 26 22, 30 28 Q 35 30, 40 28 Z"
+          fill="#10B981"
+        />
+        {/* Vein */}
+        <path
+          d="M 40 25 Q 35 22, 32 20"
+          stroke="#059669"
+          strokeWidth="0.5"
+          fill="none"
+        />
+      </motion.g>
+
+      {/* Right Leaf - Teardrop shape */}
+      <motion.g
+        animate={{
+          rotate: [5, -5, 5],
+          originX: "60px",
+          originY: "25px"
+        }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+      >
+        <path
+          d="M 60 25 Q 65 20, 68 18 Q 70 16, 72 18 Q 74 22, 70 28 Q 65 30, 60 28 Z"
+          fill="#10B981"
+        />
+        {/* Vein */}
+        <path
+          d="M 60 25 Q 65 22, 68 20"
+          stroke="#059669"
+          strokeWidth="0.5"
+          fill="none"
+        />
+      </motion.g>
+
+      {/* Left Eye */}
+      <motion.ellipse
+        cx="42"
+        cy="50"
+        rx="3"
+        ry={isBlinking ? "0.3" : "4"}
+        fill="#065F46"
+        animate={{ ry: isBlinking ? 0.3 : 4 }}
+        transition={{ duration: 0.1 }}
+      />
+
+      {/* Right Eye */}
+      <motion.ellipse
+        cx="58"
+        cy="50"
+        rx="3"
+        ry={isBlinking ? "0.3" : "4"}
+        fill="#065F46"
+        animate={{ ry: isBlinking ? 0.3 : 4 }}
+        transition={{ duration: 0.1 }}
+      />
+
+      {/* Smile */}
+      <path
+        d="M 40 58 Q 50 63, 60 58"
+        stroke="#065F46"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* Left Blush */}
+      <ellipse
+        cx="35"
+        cy="55"
+        rx="4"
+        ry="2.5"
+        fill="rgba(252, 165, 165, 0.6)"
+      />
+
+      {/* Right Blush */}
+      <ellipse
+        cx="65"
+        cy="55"
+        rx="4"
+        ry="2.5"
+        fill="rgba(252, 165, 165, 0.6)"
+      />
+    </motion.svg>
+  );
+};
 
 // --- SOFT GLASS CARD ---
 const SoftGlassCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
@@ -225,7 +437,6 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
   return (
     <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        {/* Background Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -234,7 +445,6 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Animated Progress Path */}
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -282,46 +492,106 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
   );
 };
 
-// --- LIVING PLANT MASCOT ---
-const LivingPlant: React.FC = () => (
-  <motion.div
-    animate={{
-      rotate: [-2, 2, -2],
-      scale: [1, 1.03, 1],
-    }}
-    transition={{
-      rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-      scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-    }}
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      margin: '32px 0'
-    }}
-  >
-    <img src="https://img.icons8.com/doodle/96/sprout.png" alt="Plant" width="100" />
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, ...SOFT_SPRING }}
-      style={{
-        background: 'rgba(255, 255, 255, 0.5)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        padding: '8px 20px',
-        borderRadius: '20px',
-        marginTop: '16px',
-        boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
+// --- XP PROGRESS BAR ---
+const XpProgressBar: React.FC<{ currentXp: number; requiredXp: number }> = ({ currentXp, requiredXp }) => {
+  const percentage = (currentXp / requiredXp) * 100;
+
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '8px',
         fontSize: '13px',
-        fontWeight: 600,
-        color: 'rgba(100, 100, 150, 1)',
-      }}
-    >
-      Sprout · Stage 1
-    </motion.div>
-  </motion.div>
-);
+        color: 'rgba(100, 100, 150, 0.7)',
+        fontWeight: 600
+      }}>
+        <span>{currentXp} XP</span>
+        <span>{requiredXp} XP</span>
+      </div>
+      <div style={{
+        width: '100%',
+        height: '12px',
+        background: 'rgba(200, 220, 255, 0.3)',
+        borderRadius: '100px',
+        overflow: 'hidden'
+      }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={SOFT_SPRING}
+          style={{
+            height: '100%',
+            background: 'linear-gradient(90deg, rgba(167, 139, 250, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)',
+            boxShadow: '0 2px 10px rgba(167, 139, 250, 0.4)'
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// --- EVOLUTION STAGES GRID ---
+const EvolutionStages: React.FC<{ currentLevel: number }> = ({ currentLevel }) => {
+  const stages = [
+    { name: 'Seed', level: 0, emoji: '🌰' },
+    { name: 'Sprout', level: 5, emoji: '🌱' },
+    { name: 'Flower', level: 15, emoji: '🌸' },
+    { name: 'Tree', level: 30, emoji: '🌳' }
+  ];
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: '16px',
+      marginTop: '24px'
+    }}>
+      {stages.map((stage, i) => {
+        const isUnlocked = currentLevel >= stage.level;
+        return (
+          <motion.div
+            key={i}
+            whileHover={{ scale: isUnlocked ? 1.05 : 1 }}
+            style={{
+              background: isUnlocked
+                ? 'rgba(255, 255, 255, 0.5)'
+                : 'rgba(200, 220, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              padding: '20px',
+              borderRadius: '20px',
+              textAlign: 'center',
+              boxShadow: isUnlocked
+                ? '0 4px 15px rgba(167, 139, 250, 0.2)'
+                : '0 2px 10px rgba(147, 197, 253, 0.1)',
+              opacity: isUnlocked ? 1 : 0.5,
+              cursor: isUnlocked ? 'default' : 'not-allowed'
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>
+              {isUnlocked ? stage.emoji : '🔒'}
+            </div>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'rgba(100, 100, 150, 0.8)',
+              marginBottom: '4px'
+            }}>
+              {stage.name}
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: 'rgba(100, 100, 150, 0.6)'
+            }}>
+              Level {stage.level}+
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
 
 // --- SOFT STATS CHART ---
 const SoftStatsChart: React.FC = () => {
@@ -390,6 +660,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('Timer');
   const [isRunning, setIsRunning] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(getDarkMode());
+  const [userData, setUserData] = useState(getUserData());
+  const [devLevel, setDevLevel] = useState(userData.level);
+
+  const theme = getBackgroundTheme(userData.level);
 
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -400,6 +674,40 @@ export default function App() {
   const handleCompleteSession = () => {
     updateStreak();
     setIsRunning(false);
+
+    // Award XP
+    const xpGained = 100;
+    const newXp = userData.xp + xpGained;
+    const requiredXp = calculateXpForLevel(userData.level);
+
+    let newLevel = userData.level;
+    let remainingXp = newXp;
+
+    // Level up if needed
+    if (newXp >= requiredXp) {
+      newLevel = userData.level + 1;
+      remainingXp = newXp - requiredXp;
+    }
+
+    const newData = {
+      level: newLevel,
+      xp: remainingXp,
+      sessionsCompleted: userData.sessionsCompleted + 1
+    };
+
+    setUserData(newData);
+    saveUserData(newData);
+  };
+
+  const handleDevLevelChange = (level: number) => {
+    setDevLevel(level);
+    const newData = {
+      ...userData,
+      level: level,
+      xp: 0
+    };
+    setUserData(newData);
+    saveUserData(newData);
   };
 
   const renderContent = () => {
@@ -422,7 +730,29 @@ export default function App() {
 
         <SoftGlassCard style={{ marginBottom: '24px' }}>
           <EtherealTimer totalSeconds={1500} isRunning={isRunning} />
-          <LivingPlant />
+
+          <div style={{ margin: '32px 0', display: 'flex', justifyContent: 'center' }}>
+            <SproutCharacter size={120} level={userData.level} />
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            padding: '8px 20px',
+            borderRadius: '20px',
+            boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'rgba(100, 100, 150, 1)',
+            display: 'inline-block'
+          }}>
+            {getCharacterStage(userData.level) === 0 && 'Seed'}
+            {getCharacterStage(userData.level) === 1 && 'Sprout'}
+            {getCharacterStage(userData.level) === 2 && 'Flower'}
+            {getCharacterStage(userData.level) === 3 && 'Tree'}
+            {' · Level '}{userData.level}
+          </div>
         </SoftGlassCard>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto' }}>
@@ -482,8 +812,12 @@ export default function App() {
               <User size={24} color="rgba(139, 92, 246, 0.8)" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(100, 100, 150, 0.9)' }}>Level 5</div>
-              <div style={{ fontSize: '14px', color: 'rgba(100, 100, 150, 0.6)' }}>450 / 1000 XP</div>
+              <div style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(100, 100, 150, 0.9)' }}>
+                {userData.sessionsCompleted} Sessions
+              </div>
+              <div style={{ fontSize: '14px', color: 'rgba(100, 100, 150, 0.6)' }}>
+                Total Completed
+              </div>
             </div>
           </div>
         </SoftGlassCard>
@@ -495,29 +829,48 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={SOFT_SPRING}
-        style={{ padding: '80px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
+        style={{ padding: '40px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
       >
+        <h1 style={{
+          fontSize: '1.5rem',
+          fontWeight: 300,
+          color: 'rgba(100, 100, 150, 0.8)',
+          marginBottom: '32px',
+          letterSpacing: '0.1em'
+        }}>
+          Your Character
+        </h1>
+
         <SoftGlassCard>
-          <motion.img
-            animate={{
-              rotate: [-3, 3, -3],
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-              scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-            }}
-            src="https://img.icons8.com/doodle/96/happy.png"
-            width="120"
-            style={{ marginBottom: 24 }}
-            alt="avatar"
+          {/* Character */}
+          <div style={{ marginBottom: '32px' }}>
+            <SproutCharacter size={160} level={userData.level} />
+          </div>
+
+          {/* Level Badge */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            padding: '12px 24px',
+            borderRadius: '24px',
+            marginBottom: '24px',
+            boxShadow: '0 4px 15px rgba(167, 139, 250, 0.2)',
+            display: 'inline-block'
+          }}>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'rgba(100, 100, 150, 0.9)' }}>
+              Level {userData.level}
+            </div>
+          </div>
+
+          {/* XP Progress */}
+          <XpProgressBar
+            currentXp={userData.xp}
+            requiredXp={calculateXpForLevel(userData.level)}
           />
-          <h2 style={{ fontSize: '24px', fontWeight: 300, color: 'rgba(100, 100, 150, 0.9)', marginBottom: '12px' }}>
-            Break Time
-          </h2>
-          <p style={{ color: 'rgba(100, 100, 150, 0.6)', fontSize: '14px' }}>
-            Take a deep breath and relax
-          </p>
+
+          {/* Evolution Stages */}
+          <EvolutionStages currentLevel={userData.level} />
         </SoftGlassCard>
       </motion.div>
     );
@@ -539,7 +892,7 @@ export default function App() {
           Settings
         </h1>
 
-        <SoftGlassCard>
+        <SoftGlassCard style={{ marginBottom: '20px' }}>
           {[
             { icon: Volume2, label: 'Sound', enabled: false, toggle: () => { } },
             { icon: Bell, label: 'Notifications', enabled: false, toggle: () => { } },
@@ -564,19 +917,76 @@ export default function App() {
             </motion.div>
           ))}
         </SoftGlassCard>
+
+        {/* Developer Tools */}
+        <SoftGlassCard>
+          <h3 style={{
+            margin: '0 0 20px 0',
+            fontSize: '16px',
+            color: 'rgba(100, 100, 150, 0.8)',
+            fontWeight: 600
+          }}>
+            Developer Tools
+          </h3>
+
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              fontSize: '14px',
+              color: 'rgba(100, 100, 150, 0.7)',
+              fontWeight: 600
+            }}>
+              <span>Force Level</span>
+              <span>Level {devLevel}</span>
+            </div>
+
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={devLevel}
+              onChange={(e) => handleDevLevelChange(parseInt(e.target.value))}
+              style={{
+                width: '100%',
+                height: '8px',
+                borderRadius: '10px',
+                outline: 'none',
+                background: 'linear-gradient(90deg, rgba(167, 139, 250, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%)',
+                WebkitAppearance: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+
+          <div style={{
+            fontSize: '12px',
+            color: 'rgba(100, 100, 150, 0.6)',
+            textAlign: 'center',
+            marginTop: '12px'
+          }}>
+            Current Theme: {theme === 'morning' ? '🌅 Morning' : theme === 'twilight' ? '🌆 Twilight' : '🌇 Golden Hour'}
+          </div>
+        </SoftGlassCard>
       </motion.div>
     );
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(180deg, #F0F4FF 0%, #F5F0FF 50%, #F0FFF5 100%)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <motion.div
+      animate={{
+        background: BACKGROUND_THEMES[theme].gradient
+      }}
+      transition={{ duration: 2, ease: "easeInOut" }}
+      style={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Animated Mesh Gradient */}
-      <AnimatedMeshGradient />
+      <AnimatedMeshGradient theme={theme} />
 
       {/* Content */}
       <div style={{
@@ -644,6 +1054,6 @@ export default function App() {
           })}
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
