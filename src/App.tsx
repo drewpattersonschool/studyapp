@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // --- THEME ---
-const COLORS = {
+const LIGHT_COLORS = {
   bg: '#F8FAFC',
   bluePrimary: '#6C63FF',
   greenAccent: '#00C897',
@@ -12,9 +12,29 @@ const COLORS = {
   white: '#FFFFFF',
   textMain: '#1A1E23',
   textSub: '#6E7A89',
+  cardBg: '#FFFFFF',
 };
 
-// --- STORAGE HELPER ---
+const DARK_COLORS = {
+  bg: '#1A1E23',
+  bluePrimary: '#8B82FF',
+  greenAccent: '#00E5A0',
+  purpleAccent: '#B76EF5',
+  white: '#2D3238',
+  textMain: '#FFFFFF',
+  textSub: '#B0B8C1',
+  cardBg: '#2D3238',
+};
+
+// --- STORAGE HELPERS ---
+const getDarkMode = () => {
+  const stored = localStorage.getItem('darkMode');
+  return stored === 'true';
+};
+
+const setDarkMode = (enabled: boolean) => {
+  localStorage.setItem('darkMode', String(enabled));
+};
 const getStoredStreak = () => {
   const data = localStorage.getItem('studyStreak');
   if (data) {
@@ -94,7 +114,7 @@ const BouncyBtn = ({ text, icon: Icon, color, onClick, small }: {
 );
 
 // 2. Animated Progress Ring (Web Version)
-const CircularTimer = ({ totalSeconds, isRunning }: { totalSeconds: number; isRunning: boolean }) => {
+const CircularTimer = ({ totalSeconds, isRunning, colors }: { totalSeconds: number; isRunning: boolean; colors: typeof LIGHT_COLORS }) => {
   const size = 280;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
@@ -135,7 +155,7 @@ const CircularTimer = ({ totalSeconds, isRunning }: { totalSeconds: number; isRu
         {/* Animated Progress Path */}
         <motion.circle
           cx={size/2} cy={size/2} r={radius}
-          stroke={COLORS.bluePrimary}
+          stroke={colors.bluePrimary}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -146,7 +166,7 @@ const CircularTimer = ({ totalSeconds, isRunning }: { totalSeconds: number; isRu
         />
       </svg>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '64px', margin: 0, color: COLORS.textMain, fontFamily: 'monospace', fontWeight: 'bold' }}>
+        <h1 style={{ fontSize: '64px', margin: 0, color: colors.textMain, fontFamily: 'monospace', fontWeight: 'bold' }}>
           {formatTime(timeLeft)}
         </h1>
       </div>
@@ -184,7 +204,7 @@ const FireStreakBadge = ({ streak }: { streak: number }) => (
 );
 
 // 4. Hand-Drawn Chart (Web Version)
-const SketchyBarChart = () => {
+const SketchyBarChart = ({ colors }: { colors: typeof LIGHT_COLORS }) => {
   const data = [35, 50, 30, 45, 65, 55, 25];
   const height = 150;
   return (
@@ -202,7 +222,7 @@ const SketchyBarChart = () => {
               border: '2px solid rgba(0,0,0,0.05)'
             }}
           />
-          <span style={{ fontSize: '12px', color: COLORS.textSub, marginTop: '4px', fontFamily: 'sans-serif' }}>
+          <span style={{ fontSize: '12px', color: colors.textSub, marginTop: '4px', fontFamily: 'sans-serif' }}>
             {['S','M','T','W','T','F','S'][i]}
           </span>
         </div>
@@ -216,6 +236,17 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('Timer');
   const [isRunning, setIsRunning] = useState(false);
   const [fireStreak, setFireStreak] = useState(getStoredStreak().streak);
+  const [isDarkMode, setIsDarkMode] = useState(getDarkMode());
+
+  // Get colors based on dark mode
+  const COLORS = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    setDarkMode(newMode);
+  };
 
   const handleCompleteSession = () => {
     const newStreak = updateStreak();
@@ -240,17 +271,17 @@ export default function App() {
             <div style={{ color: COLORS.textSub, fontSize: '16px' }}>Good morning,</div>
             <h2 style={{ margin: 0, fontSize: '32px', color: COLORS.textMain, fontWeight: '800' }}>Focus Time</h2>
           </div>
-          <Settings color={COLORS.textMain} style={{ background: 'white', padding: 8, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
+          <Settings color={COLORS.textMain} style={{ background: COLORS.cardBg, padding: 8, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
         </div>
 
         {/* Fire Streak Badge */}
         <FireStreakBadge streak={fireStreak} />
 
-        <CircularTimer totalSeconds={1500} isRunning={isRunning} />
+        <CircularTimer totalSeconds={1500} isRunning={isRunning} colors={COLORS} />
 
         <div style={{ margin: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img src="https://img.icons8.com/doodle/96/sprout.png" alt="Mascot" width="100" />
-          <div style={{ background: 'white', padding: '6px 16px', borderRadius: '16px', marginTop: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', fontSize: '14px', fontWeight: 'bold', color: COLORS.textMain }}>
+          <div style={{ background: COLORS.cardBg, padding: '6px 16px', borderRadius: '16px', marginTop: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', fontSize: '14px', fontWeight: 'bold', color: COLORS.textMain }}>
             Sprout Stage 1
           </div>
         </div>
@@ -279,9 +310,9 @@ export default function App() {
         {/* Fire Streak in Stats */}
         <FireStreakBadge streak={fireStreak} />
 
-        <div style={{ background: 'white', padding: '24px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>Study Time</h3>
-          <SketchyBarChart />
+        <div style={{ background: COLORS.cardBg, padding: '24px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+          <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', color: COLORS.textMain }}>Study Time</h3>
+          <SketchyBarChart colors={COLORS} />
         </div>
         <div style={{ background: COLORS.bluePrimary, padding: '20px', borderRadius: '24px', display: 'flex', alignItems: 'center', color: 'white' }}>
           <div style={{ background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', marginRight: '16px' }}>
@@ -295,26 +326,57 @@ export default function App() {
     if (activeTab === 'Avatar') return (
         <div style={{ padding: '24px', textAlign: 'center', paddingTop: '100px' }}>
             <img src="https://img.icons8.com/doodle/96/happy.png" width="120" style={{marginBottom: 20}} />
-            <h2>Break Time!</h2>
+            <h2 style={{color: COLORS.textMain}}>Break Time!</h2>
             <p style={{color: COLORS.textSub}}>Take a deep breath.</p>
         </div>
     );
 
     return (
         <div style={{ padding: '24px' }}>
-            <h2>Settings</h2>
-            <div style={{ background: 'white', padding: '10px', borderRadius: '20px', marginTop: 20 }}>
+            <h2 style={{ color: COLORS.textMain }}>Settings</h2>
+            <div style={{ background: COLORS.cardBg, padding: '10px', borderRadius: '20px', marginTop: 20 }}>
                 {[
-                    { icon: Volume2, label: 'Sound' },
-                    { icon: Bell, label: 'Notifications' },
-                    { icon: Moon, label: 'Dark Mode' }
+                    { icon: Volume2, label: 'Sound', enabled: false, toggle: () => {} },
+                    { icon: Bell, label: 'Notifications', enabled: false, toggle: () => {} },
+                    { icon: Moon, label: 'Dark Mode', enabled: isDarkMode, toggle: toggleDarkMode }
                 ].map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '16px', borderBottom: i !== 2 ? '1px solid #f0f0f0' : 'none' }}>
+                    <div
+                        key={i}
+                        onClick={item.toggle}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '16px',
+                            borderBottom: i !== 2 ? `1px solid ${isDarkMode ? '#3a3f47' : '#f0f0f0'}` : 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
                         <item.icon size={20} color={COLORS.textMain} />
-                        <span style={{ marginLeft: 16, flex: 1, fontWeight: '500' }}>{item.label}</span>
-                        <div style={{ width: 40, height: 24, background: '#E0E0E0', borderRadius: 20, position: 'relative' }}>
-                            <div style={{ width: 20, height: 20, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: 2, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
-                        </div>
+                        <span style={{ marginLeft: 16, flex: 1, fontWeight: '500', color: COLORS.textMain }}>{item.label}</span>
+                        <motion.div
+                            style={{
+                                width: 40,
+                                height: 24,
+                                background: item.enabled ? COLORS.greenAccent : '#E0E0E0',
+                                borderRadius: 20,
+                                position: 'relative',
+                                transition: 'background-color 0.3s'
+                            }}
+                        >
+                            <motion.div
+                                animate={{ left: item.enabled ? 18 : 2 }}
+                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                style={{
+                                    width: 20,
+                                    height: 20,
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    position: 'absolute',
+                                    top: 2,
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                }}
+                            />
+                        </motion.div>
                     </div>
                 ))}
             </div>
@@ -329,7 +391,7 @@ export default function App() {
       {/* Tab Bar */}
       <div style={{
         position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: '480px', background: 'white',
+        width: '100%', maxWidth: '480px', background: COLORS.cardBg,
         borderRadius: '32px 32px 0 0', boxShadow: '0 -5px 20px rgba(0,0,0,0.05)',
         display: 'flex', justifyContent: 'space-around', padding: '16px 16px 24px 16px', zIndex: 100
       }}>
