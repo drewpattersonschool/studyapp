@@ -83,12 +83,14 @@ const TimerScreen: React.FC = () => {
   // Handle drag to adjust time
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (timer.isRunning || timerMode !== 'study') return;
-    setIsDragging(true);
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
   };
 
   const handleDragMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging || !circleRef.current) return;
+    e.preventDefault();
 
     const circle = circleRef.current.getBoundingClientRect();
     const centerX = circle.left + circle.width / 2;
@@ -116,7 +118,7 @@ const TimerScreen: React.FC = () => {
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('touchmove', handleDragMove);
+      window.addEventListener('touchmove', handleDragMove, { passive: false });
       window.addEventListener('mouseup', handleDragEnd);
       window.addEventListener('touchend', handleDragEnd);
 
