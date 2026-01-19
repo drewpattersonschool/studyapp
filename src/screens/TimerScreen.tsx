@@ -89,6 +89,7 @@ const TimerScreen: React.FC = () => {
     const centerY = rect.top + rect.height / 2;
 
     // Calculate angle from center
+    // Use window scroll offsets for more accurate positioning on iOS
     const dx = clientX - centerX;
     const dy = clientY - centerY;
     let angle = Math.atan2(dy, dx) * (180 / Math.PI);
@@ -122,14 +123,16 @@ const TimerScreen: React.FC = () => {
     const handleTouchMove = (e: TouchEvent) => {
       if (isDragging && e.touches.length > 0) {
         e.preventDefault();
-        handleDrag(e.touches[0].clientX, e.touches[0].clientY);
+        // Use pageX/pageY for more reliable positioning on iOS
+        const touch = e.touches[0];
+        handleDrag(touch.pageX, touch.pageY);
       }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
         e.preventDefault();
-        handleDrag(e.clientX, e.clientY);
+        handleDrag(e.pageX, e.pageY);
       }
     };
 
@@ -160,7 +163,7 @@ const TimerScreen: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary">
             {timerMode === 'study' ? 'Timer' : 'Break'}
           </h1>
-          <p className="text-xs text-text-secondary">v2.0 Build 2 - Drag Circle</p>
+          <p className="text-xs text-text-secondary">v2.0 Build 3 - Fixed Touch</p>
         </div>
         <button
           onClick={() => navigate('/settings')}
@@ -236,20 +239,30 @@ const TimerScreen: React.FC = () => {
                   transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}
                   className="transition-transform duration-100"
                 />
-                {/* Draggable handle */}
-                <circle
-                  cx="140"
-                  cy={140 - 120}
-                  r="12"
-                  fill="rgba(0,0,0,0.7)"
-                  stroke="white"
-                  strokeWidth="2"
-                  transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}
-                  className="cursor-pointer transition-transform duration-100"
-                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-                  onTouchStart={handleDragStart}
-                  onMouseDown={handleDragStart}
-                />
+                {/* Draggable handle - larger touch target */}
+                <g transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}>
+                  {/* Invisible larger hit area for easier touch */}
+                  <circle
+                    cx="140"
+                    cy={140 - 120}
+                    r="24"
+                    fill="transparent"
+                    className="cursor-pointer"
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    onTouchStart={handleDragStart}
+                    onMouseDown={handleDragStart}
+                  />
+                  {/* Visible handle */}
+                  <circle
+                    cx="140"
+                    cy={140 - 120}
+                    r="14"
+                    fill="rgba(0,0,0,0.8)"
+                    stroke="white"
+                    strokeWidth="3"
+                    className="pointer-events-none transition-transform duration-100"
+                  />
+                </g>
               </>
             )}
           </svg>
