@@ -10,7 +10,7 @@ import BottomNav from './components/BottomNav';
 function App() {
   return (
     <ThemeProvider>
-      <Router basename="/studyapp">
+      <Router>
         <div className="min-h-screen w-full">
           <Routes>
             <Route path="/" element={<TimerScreen />} />
