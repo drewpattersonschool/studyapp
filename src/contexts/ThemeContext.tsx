@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useUserData } from '../hooks/useUserData';
 import type { ThemeColor } from '../types';
@@ -7,6 +7,7 @@ interface ThemeContextType {
   theme: ThemeColor;
   setTheme: (theme: ThemeColor) => void;
   getGradientClass: () => string;
+  gradientClass: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,7 +20,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     updateSettings({ selectedTheme: theme });
   };
 
-  const getGradientClass = () => {
+  const gradientClass = useMemo(() => {
     switch (currentTheme) {
       case 'blue':
         return 'gradient-bg-blue';
@@ -34,13 +35,17 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       default:
         return 'gradient-bg-purple';
     }
-  };
+  }, [currentTheme]);
 
-  // Create a unique key that changes when theme changes to force re-render
-  const themeKey = `theme-${currentTheme}`;
+  const getGradientClass = () => gradientClass;
+
+  const value = useMemo(
+    () => ({ theme: currentTheme, setTheme, getGradientClass, gradientClass }),
+    [currentTheme, gradientClass]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme: currentTheme, setTheme, getGradientClass }} key={themeKey}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
