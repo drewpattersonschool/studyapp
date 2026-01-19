@@ -89,13 +89,14 @@ const TimerScreen: React.FC = () => {
     const centerY = rect.top + rect.height / 2;
 
     // Calculate angle from center
-    // Use window scroll offsets for more accurate positioning on iOS
     const dx = clientX - centerX;
     const dy = clientY - centerY;
-    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
-    // Normalize angle to 0-360 (0 at top)
-    angle = (angle + 90) % 360;
+    // atan2 gives us angle from positive x-axis, counterclockwise
+    // We need angle from negative y-axis (top), clockwise
+    let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+
+    // Normalize to 0-360
     if (angle < 0) angle += 360;
 
     // Map angle to minutes (5-60)
@@ -123,16 +124,16 @@ const TimerScreen: React.FC = () => {
     const handleTouchMove = (e: TouchEvent) => {
       if (isDragging && e.touches.length > 0) {
         e.preventDefault();
-        // Use pageX/pageY for more reliable positioning on iOS
+        // Use clientX/Y to match getBoundingClientRect() coordinate system
         const touch = e.touches[0];
-        handleDrag(touch.pageX, touch.pageY);
+        handleDrag(touch.clientX, touch.clientY);
       }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
         e.preventDefault();
-        handleDrag(e.pageX, e.pageY);
+        handleDrag(e.clientX, e.clientY);
       }
     };
 
@@ -163,7 +164,7 @@ const TimerScreen: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary">
             {timerMode === 'study' ? 'Timer' : 'Break'}
           </h1>
-          <p className="text-xs text-text-secondary">v2.0 Build 3 - Fixed Touch</p>
+          <p className="text-xs text-text-secondary">v2.0 Build 4 - Angle Fix</p>
         </div>
         <button
           onClick={() => navigate('/settings')}
