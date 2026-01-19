@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimer } from '../hooks/useTimer';
 import { useUserData } from '../hooks/useUserData';
@@ -15,8 +15,8 @@ const TimerScreen: React.FC = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
   const [customDuration, setCustomDuration] = useState(userData.settings.studyDuration);
-  const [isDragging, setIsDragging] = useState(false);
   const circleRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const getDuration = () => {
     switch (timerMode) {
@@ -80,62 +80,92 @@ const TimerScreen: React.FC = () => {
     return Math.min(Math.max(progress, 0), 100);
   };
 
-  // Handle drag to adjust time
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+  // Handle drag circle for time adjustment
+  const handleDrag = useCallback((clientX: number, clientY: number) => {
+    if (!circleRef.current || timer.isRunning || timerMode !== 'study') return;
+
+    const rect = circleRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // Calculate angle from center
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+
+    // atan2 gives us angle from positive x-axis, counterclockwise
+    // We need angle from negative y-axis (top), clockwise
+    let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+
+    // Normalize to 0-360
+    if (angle < 0) angle += 360;
+
+    // Map angle to minutes (5-60)
+    // Full circle = 55 minutes range (60-5)
+    const minutes = Math.round((angle / 360) * 55 + 5);
+    const clampedMinutes = Math.max(5, Math.min(60, minutes));
+
+    setCustomDuration(clampedMinutes);
+  }, [timer.isRunning, timerMode]);
+
+  const handleDragStart = useCallback(() => {
     if (timer.isRunning || timerMode !== 'study') return;
     setIsDragging(true);
-    e.preventDefault();
-  };
+  }, [timer.isRunning, timerMode]);
 
-  const handleDragMove = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging || !circleRef.current) return;
-
-    const circle = circleRef.current.getBoundingClientRect();
-    const centerX = circle.left + circle.width / 2;
-    const centerY = circle.top + circle.height / 2;
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-    const angle = Math.atan2(clientY - centerY, clientX - centerX);
-    const degrees = ((angle * 180) / Math.PI + 90 + 360) % 360;
-
-    // Map 360 degrees to 5-60 minutes
-    const newMinutes = Math.round(5 + (degrees / 360) * 55);
-    setCustomDuration(newMinutes);
-  };
-
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     if (isDragging) {
       setIsDragging(false);
-      // Save the custom duration to settings
       updateSettings({ studyDuration: customDuration });
     }
-  };
+  }, [isDragging, customDuration, updateSettings]);
 
+  // Setup drag event listeners
   useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches.length > 0) {
+        e.preventDefault();
+        // Use clientX/Y to match getBoundingClientRect() coordinate system
+        const touch = e.touches[0];
+        handleDrag(touch.clientX, touch.clientY);
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleDrag(e.clientX, e.clientY);
+      }
+    };
+
+    const handleEnd = () => {
+      handleDragEnd();
+    };
+
     if (isDragging) {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('touchmove', handleDragMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchend', handleDragEnd);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('touchend', handleEnd);
+      window.addEventListener('mouseup', handleEnd);
 
       return () => {
-        window.removeEventListener('mousemove', handleDragMove);
-        window.removeEventListener('touchmove', handleDragMove);
-        window.removeEventListener('mouseup', handleDragEnd);
-        window.removeEventListener('touchend', handleDragEnd);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('touchend', handleEnd);
+        window.removeEventListener('mouseup', handleEnd);
       };
     }
-  }, [isDragging, customDuration]);
+  }, [isDragging, handleDrag, handleDragEnd]);
 
   return (
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold text-text-primary">
-          {timerMode === 'study' ? 'Timer' : 'Break'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary">
+            {timerMode === 'study' ? 'Timer' : 'Break'}
+          </h1>
+          <p className="text-xs text-text-secondary">v2.0 Build 4 - Angle Fix</p>
+        </div>
         <button
           onClick={() => navigate('/settings')}
           className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center"
@@ -152,11 +182,10 @@ const TimerScreen: React.FC = () => {
         <div className="relative">
           <svg
             ref={circleRef}
-            className="transform -rotate-90 cursor-pointer"
+            className="transform -rotate-90"
             width="280"
             height="280"
-            onMouseDown={handleDragStart}
-            onTouchStart={handleDragStart}
+            style={{ touchAction: 'none' }}
           >
             <circle
               cx="140"
@@ -187,70 +216,72 @@ const TimerScreen: React.FC = () => {
               opacity="0.9"
               className="transition-all duration-1000"
             />
-            {/* Drag indicator when not running */}
+            {/* Draggable handle - only show when timer is not running and in study mode */}
             {!timer.isRunning && timerMode === 'study' && (
               <>
-                {/* Outer glow for visibility */}
+                {/* Handle track circle */}
                 <circle
                   cx="140"
-                  cy="20"
-                  r="16"
-                  fill="rgba(0,0,0,0.2)"
-                  className={isDragging ? 'scale-125' : ''}
-                />
-                {/* Main black draggable circle */}
-                <circle
-                  cx="140"
-                  cy="20"
-                  r="12"
-                  fill="#2a2a2a"
-                  stroke="white"
+                  cy="140"
+                  r="120"
+                  fill="none"
+                  stroke="rgba(0,0,0,0.1)"
                   strokeWidth="2"
-                  className={`cursor-grab ${isDragging ? 'scale-110 cursor-grabbing' : ''}`}
-                  style={{ transition: 'transform 0.2s' }}
+                  strokeDasharray="4 4"
                 />
-                {/* Inner white dot for visibility */}
-                <circle
-                  cx="140"
-                  cy="20"
-                  r="4"
-                  fill="white"
+                {/* Duration indicator line */}
+                <line
+                  x1="140"
+                  y1="140"
+                  x2="140"
+                  y2={140 - 120}
+                  stroke="rgba(0,0,0,0.3)"
+                  strokeWidth="2"
+                  transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}
+                  className="transition-transform duration-100"
                 />
-                {isDragging && (
-                  <text
-                    x="140"
-                    y="270"
-                    textAnchor="middle"
+                {/* Draggable handle - larger touch target */}
+                <g transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}>
+                  {/* Invisible larger hit area for easier touch */}
+                  <circle
+                    cx="140"
+                    cy={140 - 120}
+                    r="24"
+                    fill="transparent"
+                    className="cursor-pointer"
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    onTouchStart={handleDragStart}
+                    onMouseDown={handleDragStart}
+                  />
+                  {/* Visible handle */}
+                  <circle
+                    cx="140"
+                    cy={140 - 120}
+                    r="14"
                     fill="rgba(0,0,0,0.8)"
-                    fontSize="16"
-                    fontWeight="700"
-                    className="rotate-90"
-                  >
-                    {customDuration} min
-                  </text>
-                )}
+                    stroke="white"
+                    strokeWidth="3"
+                    className="pointer-events-none transition-transform duration-100"
+                  />
+                </g>
               </>
             )}
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-6xl font-light text-text-primary">
-              {formatTime(timer.timeLeft)}
-            </span>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <span className="text-6xl font-light text-text-primary">
+                {formatTime(timer.timeLeft)}
+              </span>
+              {!timer.isRunning && timerMode === 'study' && (
+                <p className="text-sm text-text-secondary mt-2">
+                  Drag handle to adjust
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Drag instruction */}
-      {!timer.isRunning && timerMode === 'study' && !isDragging && (
-        <div className="text-center mb-4">
-          <p className="text-sm font-medium text-text-primary mb-1">
-            🔄 Drag the black circle to adjust time
-          </p>
-          <p className="text-xs text-text-secondary">
-            Spin around to set 5-60 minutes
-          </p>
-        </div>
-      )}
 
       {/* Character */}
       <div className="flex justify-center mb-4">

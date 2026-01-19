@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   studyDuration: 25,
   shortBreakDuration: 5,
   longBreakDuration: 15,
-  selectedTheme: 'blue',
+  selectedTheme: 'purple',
 };
 
 const DEFAULT_USER_DATA: UserData = {

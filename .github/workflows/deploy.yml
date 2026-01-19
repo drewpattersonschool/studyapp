@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - claude/gamified-pomodoro-timer-A265m
+      - claude/review-changes-mkku8jm07ox7lud7-AfkRh
 
 permissions:
   contents: read
@@ -39,9 +39,6 @@ jobs:
           path: ./dist
 
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:

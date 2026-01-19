@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useUserData } from '../hooks/useUserData';
 import type { ThemeColor } from '../types';
@@ -7,19 +7,21 @@ interface ThemeContextType {
   theme: ThemeColor;
   setTheme: (theme: ThemeColor) => void;
   getGradientClass: () => string;
+  gradientClass: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { userData, updateSettings } = useUserData();
+  const currentTheme = userData.settings.selectedTheme;
 
   const setTheme = (theme: ThemeColor) => {
     updateSettings({ selectedTheme: theme });
   };
 
-  const getGradientClass = () => {
-    switch (userData.settings.selectedTheme) {
+  const gradientClass = useMemo(() => {
+    switch (currentTheme) {
       case 'blue':
         return 'gradient-bg-blue';
       case 'green':
@@ -31,12 +33,19 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       case 'beige':
         return 'gradient-bg-beige';
       default:
-        return 'gradient-bg-blue';
+        return 'gradient-bg-purple';
     }
-  };
+  }, [currentTheme]);
+
+  const getGradientClass = () => gradientClass;
+
+  const value = useMemo(
+    () => ({ theme: currentTheme, setTheme, getGradientClass, gradientClass }),
+    [currentTheme, gradientClass]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme: userData.settings.selectedTheme, setTheme, getGradientClass }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
