@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimer } from '../hooks/useTimer';
 import { useUserData } from '../hooks/useUserData';
@@ -16,6 +16,7 @@ const TimerScreen: React.FC = () => {
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
   const [customDuration, setCustomDuration] = useState(userData.settings.studyDuration);
   const circleRef = useRef<SVGSVGElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const getDuration = () => {
     switch (timerMode) {
@@ -79,13 +80,77 @@ const TimerScreen: React.FC = () => {
     return Math.min(Math.max(progress, 0), 100);
   };
 
-  // Handle time adjustment with buttons
-  const adjustTime = (delta: number) => {
+  // Handle drag circle for time adjustment
+  const handleDrag = useCallback((clientX: number, clientY: number) => {
+    if (!circleRef.current || timer.isRunning || timerMode !== 'study') return;
+
+    const rect = circleRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // Calculate angle from center
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    // Normalize angle to 0-360 (0 at top)
+    angle = (angle + 90) % 360;
+    if (angle < 0) angle += 360;
+
+    // Map angle to minutes (5-60)
+    // Full circle = 55 minutes range (60-5)
+    const minutes = Math.round((angle / 360) * 55 + 5);
+    const clampedMinutes = Math.max(5, Math.min(60, minutes));
+
+    setCustomDuration(clampedMinutes);
+  }, [timer.isRunning, timerMode]);
+
+  const handleDragStart = useCallback(() => {
     if (timer.isRunning || timerMode !== 'study') return;
-    const newDuration = Math.max(5, Math.min(60, customDuration + delta));
-    setCustomDuration(newDuration);
-    updateSettings({ studyDuration: newDuration });
-  };
+    setIsDragging(true);
+  }, [timer.isRunning, timerMode]);
+
+  const handleDragEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      updateSettings({ studyDuration: customDuration });
+    }
+  }, [isDragging, customDuration, updateSettings]);
+
+  // Setup drag event listeners
+  useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches.length > 0) {
+        e.preventDefault();
+        handleDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        handleDrag(e.clientX, e.clientY);
+      }
+    };
+
+    const handleEnd = () => {
+      handleDragEnd();
+    };
+
+    if (isDragging) {
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('touchend', handleEnd);
+      window.addEventListener('mouseup', handleEnd);
+
+      return () => {
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('touchend', handleEnd);
+        window.removeEventListener('mouseup', handleEnd);
+      };
+    }
+  }, [isDragging, handleDrag, handleDragEnd]);
 
   return (
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
@@ -113,6 +178,7 @@ const TimerScreen: React.FC = () => {
             className="transform -rotate-90"
             width="280"
             height="280"
+            style={{ touchAction: 'none' }}
           >
             <circle
               cx="140"
@@ -143,36 +209,62 @@ const TimerScreen: React.FC = () => {
               opacity="0.9"
               className="transition-all duration-1000"
             />
+            {/* Draggable handle - only show when timer is not running and in study mode */}
+            {!timer.isRunning && timerMode === 'study' && (
+              <>
+                {/* Handle track circle */}
+                <circle
+                  cx="140"
+                  cy="140"
+                  r="120"
+                  fill="none"
+                  stroke="rgba(0,0,0,0.1)"
+                  strokeWidth="2"
+                  strokeDasharray="4 4"
+                />
+                {/* Duration indicator line */}
+                <line
+                  x1="140"
+                  y1="140"
+                  x2="140"
+                  y2={140 - 120}
+                  stroke="rgba(0,0,0,0.3)"
+                  strokeWidth="2"
+                  transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}
+                  className="transition-transform duration-100"
+                />
+                {/* Draggable handle */}
+                <circle
+                  cx="140"
+                  cy={140 - 120}
+                  r="12"
+                  fill="rgba(0,0,0,0.7)"
+                  stroke="white"
+                  strokeWidth="2"
+                  transform={`rotate(${((customDuration - 5) / 55) * 360} 140 140)`}
+                  className="cursor-pointer transition-transform duration-100"
+                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                  onTouchStart={handleDragStart}
+                  onMouseDown={handleDragStart}
+                />
+              </>
+            )}
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-6xl font-light text-text-primary">
-              {formatTime(timer.timeLeft)}
-            </span>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <span className="text-6xl font-light text-text-primary">
+                {formatTime(timer.timeLeft)}
+              </span>
+              {!timer.isRunning && timerMode === 'study' && (
+                <p className="text-sm text-text-secondary mt-2">
+                  Drag handle to adjust
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Time adjustment buttons */}
-      {!timer.isRunning && timerMode === 'study' && (
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <button
-            onClick={() => adjustTime(-5)}
-            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-sm flex items-center justify-center text-2xl font-medium text-text-primary hover:bg-white/70 active:scale-95 transition-all shadow-soft"
-          >
-            −
-          </button>
-          <div className="text-center min-w-[100px]">
-            <p className="text-2xl font-semibold text-text-primary">{customDuration} min</p>
-            <p className="text-xs text-text-secondary">Study Duration</p>
-          </div>
-          <button
-            onClick={() => adjustTime(5)}
-            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-sm flex items-center justify-center text-2xl font-medium text-text-primary hover:bg-white/70 active:scale-95 transition-all shadow-soft"
-          >
-            +
-          </button>
-        </div>
-      )}
 
       {/* Character */}
       <div className="flex justify-center mb-4">
