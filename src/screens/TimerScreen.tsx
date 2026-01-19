@@ -156,9 +156,12 @@ const TimerScreen: React.FC = () => {
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold text-text-primary">
-          {timerMode === 'study' ? 'Timer' : 'Break'}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary">
+            {timerMode === 'study' ? 'Timer' : 'Break'}
+          </h1>
+          <p className="text-xs text-text-secondary">v2.0 - Drag Circle</p>
+        </div>
         <button
           onClick={() => navigate('/settings')}
           className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center"
