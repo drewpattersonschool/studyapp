@@ -160,7 +160,7 @@ const TimerScreen: React.FC = () => {
           <h1 className="text-2xl font-semibold text-text-primary">
             {timerMode === 'study' ? 'Timer' : 'Break'}
           </h1>
-          <p className="text-xs text-text-secondary">v2.0 - Drag Circle</p>
+          <p className="text-xs text-text-secondary">v2.0 Build 2 - Drag Circle</p>
         </div>
         <button
           onClick={() => navigate('/settings')}

@@ -5,10 +5,15 @@ const config: CapacitorConfig = {
   appName: 'StudyBuddy',
   webDir: 'dist',
   server: {
-    cleartext: true
+    cleartext: true,
+    // Disable caching to ensure latest build always loads
+    androidScheme: 'https',
+    iosScheme: 'capacitor'
   },
   ios: {
-    limitsNavigationsToAppBoundDomains: false
+    limitsNavigationsToAppBoundDomains: false,
+    // WebView configuration for better cache control
+    contentInset: 'always'
   }
 };
 
