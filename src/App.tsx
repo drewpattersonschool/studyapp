@@ -1,30 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Home, BarChart2, Settings, User, Play, Pause, RotateCcw, ChevronLeft, Volume2, Bell, Moon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Home, BarChart2, Settings as SettingsIcon, User, Play, Pause, RotateCcw, Volume2, Bell, Moon, Flame } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-// --- THEME ---
-const LIGHT_COLORS = {
-  bg: '#F8FAFC',
-  bluePrimary: '#6C63FF',
-  greenAccent: '#00C897',
-  purpleAccent: '#9D4EDD',
-  white: '#FFFFFF',
-  textMain: '#1A1E23',
-  textSub: '#6E7A89',
-  cardBg: '#FFFFFF',
-};
-
-const DARK_COLORS = {
-  bg: '#1A1E23',
-  bluePrimary: '#8B82FF',
-  greenAccent: '#00E5A0',
-  purpleAccent: '#B76EF5',
-  white: '#2D3238',
-  textMain: '#FFFFFF',
-  textSub: '#B0B8C1',
-  cardBg: '#2D3238',
-};
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 
 // --- STORAGE HELPERS ---
 const getDarkMode = () => {
@@ -35,6 +12,7 @@ const getDarkMode = () => {
 const setDarkMode = (enabled: boolean) => {
   localStorage.setItem('darkMode', String(enabled));
 };
+
 const getStoredStreak = () => {
   const data = localStorage.getItem('studyStreak');
   if (data) {
@@ -49,7 +27,6 @@ const updateStreak = () => {
   const stored = getStoredStreak();
 
   if (stored.lastStudyDate === today) {
-    // Already studied today, keep streak
     return stored.streak;
   }
 
@@ -59,10 +36,8 @@ const updateStreak = () => {
 
   let newStreak;
   if (!lastDate || lastDate.toDateString() === yesterday.toDateString()) {
-    // Consecutive day or first time
     newStreak = stored.streak + 1;
   } else {
-    // Streak broken
     newStreak = 1;
   }
 
@@ -74,49 +49,184 @@ const updateStreak = () => {
   return newStreak;
 };
 
-// --- COMPONENTS ---
+// --- PHYSICS CONFIG ---
+const SPRING_CONFIG = { type: "spring" as const, stiffness: 400, damping: 25 };
+const TACTILE_PRESS = { scale: 0.92 };
 
-// 1. Bouncy Button (Web Version)
-const BouncyBtn = ({ text, icon: Icon, color, onClick, small }: {
-  text?: string;
-  icon?: LucideIcon;
-  color: string;
-  onClick: () => void;
-  small?: boolean;
-}) => (
-  <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.95, translateY: 2 }}
-    onClick={onClick}
-    style={{
-      backgroundColor: color,
-      width: small ? 'auto' : '100%',
-      padding: small ? '12px 24px' : '18px',
-      borderRadius: '30px',
-      border: 'none',
-      borderBottom: '4px solid rgba(0,0,0,0.1)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: small ? '14px' : '18px',
-      marginBottom: '8px',
-      fontFamily: 'Segoe UI, sans-serif',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      transition: 'background-color 0.2s'
-    }}
-  >
-    {Icon && <Icon size={small ? 18 : 24} style={{ marginRight: text ? 8 : 0 }} />}
-    {text}
-  </motion.button>
+// --- GRADIENT ORBS BACKGROUND ---
+const GradientOrbs: React.FC = () => (
+  <>
+    <motion.div
+      animate={{
+        x: [0, 100, -50, 0],
+        y: [0, -80, 120, 0],
+      }}
+      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      style={{
+        position: 'absolute',
+        top: '10%',
+        left: '20%',
+        width: 300,
+        height: 300,
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }}
+    />
+    <motion.div
+      animate={{
+        x: [0, -120, 80, 0],
+        y: [0, 100, -60, 0],
+      }}
+      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+      style={{
+        position: 'absolute',
+        top: '60%',
+        right: '10%',
+        width: 400,
+        height: 400,
+        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 70%)',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }}
+    />
+    <motion.div
+      animate={{
+        x: [0, 60, -100, 0],
+        y: [0, -120, 40, 0],
+      }}
+      transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+      style={{
+        position: 'absolute',
+        bottom: '20%',
+        left: '50%',
+        width: 350,
+        height: 350,
+        background: 'radial-gradient(circle, rgba(139, 130, 255, 0.12) 0%, transparent 70%)',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }}
+    />
+  </>
 );
 
-// 2. Animated Progress Ring (Web Version)
-const CircularTimer = ({ totalSeconds, isRunning, colors }: { totalSeconds: number; isRunning: boolean; colors: typeof LIGHT_COLORS }) => {
-  const size = 280;
-  const strokeWidth = 12;
+// --- 3D TILT CARD ---
+const TiltCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const rotateX = useTransform(y, [-100, 100], [5, -5]);
+  const rotateY = useTransform(x, [-100, 100], [-5, 5]);
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set(event.clientX - centerX);
+    y.set(event.clientY - centerY);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        perspective: 1000,
+        ...style
+      }}
+    >
+      <motion.div
+        style={{
+          rotateX,
+          rotateY,
+          transformStyle: 'preserve-3d',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '32px',
+          padding: '32px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        }}
+        transition={SPRING_CONFIG}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// --- TACTILE BUTTON ---
+const TactileButton: React.FC<{
+  text?: string;
+  icon?: LucideIcon;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'ghost';
+}> = ({ text, icon: Icon, onClick, variant = 'primary' }) => {
+  const colors = {
+    primary: {
+      bg: '#3B82F6',
+      glow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+      hoverGlow: '0 0 30px rgba(59, 130, 246, 0.7), 0 0 60px rgba(59, 130, 246, 0.4)'
+    },
+    secondary: {
+      bg: 'rgba(255, 255, 255, 0.05)',
+      glow: '0 0 15px rgba(255, 255, 255, 0.1)',
+      hoverGlow: '0 0 25px rgba(255, 255, 255, 0.2)'
+    },
+    ghost: {
+      bg: 'rgba(255, 255, 255, 0.03)',
+      glow: 'none',
+      hoverGlow: '0 0 20px rgba(255, 255, 255, 0.15)'
+    }
+  };
+
+  const style = colors[variant];
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02, boxShadow: style.hoverGlow }}
+      whileTap={TACTILE_PRESS}
+      onClick={onClick}
+      transition={SPRING_CONFIG}
+      style={{
+        background: style.bg,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '16px',
+        padding: text ? '16px 32px' : '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        cursor: 'pointer',
+        color: 'white',
+        fontSize: '16px',
+        fontWeight: 600,
+        boxShadow: style.glow,
+        outline: 'none',
+      }}
+    >
+      {Icon && <Icon size={20} />}
+      {text}
+    </motion.button>
+  );
+};
+
+// --- GLOWING TIMER RING ---
+const GlowingTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({ totalSeconds, isRunning }) => {
+  const size = 320;
+  const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
@@ -142,8 +252,8 @@ const CircularTimer = ({ totalSeconds, isRunning, colors }: { totalSeconds: numb
     <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', overflow: 'visible' }}>
         <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+          <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -151,85 +261,170 @@ const CircularTimer = ({ totalSeconds, isRunning, colors }: { totalSeconds: numb
           </filter>
         </defs>
         {/* Background Track */}
-        <circle cx={size/2} cy={size/2} r={radius} stroke="#E0E0E0" strokeWidth={strokeWidth} fill="none" />
-        {/* Animated Progress Path */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255, 255, 255, 0.05)"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Animated Progress Path with Glow */}
         <motion.circle
-          cx={size/2} cy={size/2} r={radius}
-          stroke={colors.bluePrimary}
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#3B82F6"
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
           animate={{ strokeDashoffset: dashOffset }}
           strokeLinecap="round"
           transition={{ duration: 1, ease: "linear" }}
-          filter="url(#glow)"
+          filter="url(#neonGlow)"
+          style={{
+            filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.8))'
+          }}
         />
       </svg>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '64px', margin: 0, color: colors.textMain, fontFamily: 'monospace', fontWeight: 'bold' }}>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center'
+      }}>
+        <motion.h1
+          key={timeLeft}
+          initial={{ scale: 1 }}
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 1 }}
+          style={{
+            fontSize: '5rem',
+            margin: 0,
+            color: 'white',
+            fontFamily: 'monospace',
+            fontWeight: 100,
+            letterSpacing: '0.1em',
+            textShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
+          }}
+        >
           {formatTime(timeLeft)}
-        </h1>
+        </motion.h1>
       </div>
     </div>
   );
 };
 
-// 3. Fire Streak Badge
-const FireStreakBadge = ({ streak }: { streak: number }) => (
+// --- PULSING FIRE STREAK PILL ---
+const FireStreakPill: React.FC<{ streak: number }> = ({ streak }) => (
   <motion.div
-    initial={{ scale: 0 }}
-    animate={{ scale: 1 }}
-    transition={{ type: "spring", duration: 0.5 }}
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={SPRING_CONFIG}
     style={{
-      background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-      padding: '16px 24px',
-      borderRadius: '24px',
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 8px 20px rgba(255, 107, 107, 0.3)',
-      marginBottom: '20px'
+      gap: '12px',
+      padding: '12px 24px',
+      background: 'rgba(0, 0, 0, 0.4)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(249, 115, 22, 0.3)',
+      borderRadius: '100px',
+      boxShadow: '0 0 20px rgba(249, 115, 22, 0.3), 0 8px 32px rgba(0, 0, 0, 0.4)',
     }}
   >
-    <span style={{ fontSize: '32px', marginRight: '12px' }}>🔥</span>
-    <div style={{ textAlign: 'left' }}>
-      <div style={{ color: 'white', fontSize: '28px', fontWeight: 'bold', lineHeight: 1 }}>
+    <motion.div
+      animate={{
+        scale: [1, 1.2, 1],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+    >
+      <Flame size={28} color="#F97316" fill="#F97316" />
+    </motion.div>
+    <div>
+      <div style={{ fontSize: '24px', fontWeight: 700, color: 'white', lineHeight: 1 }}>
         {streak}
       </div>
-      <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px', fontWeight: '600' }}>
+      <div style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 600, letterSpacing: '0.1em' }}>
         DAY STREAK
       </div>
     </div>
   </motion.div>
 );
 
-// 4. Hand-Drawn Chart (Web Version)
-const SketchyBarChart = ({ colors }: { colors: typeof LIGHT_COLORS }) => {
+// --- GLASS STATS CARD ---
+const StatsCard: React.FC = () => {
   const data = [35, 50, 30, 45, 65, 55, 25];
-  const height = 150;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: height, padding: '0 10px' }}>
-      {data.map((val, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '12%' }}>
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: `${(val / 70) * 100}%` }}
-            transition={{ type: 'spring', delay: i * 0.1 }}
-            style={{
-              width: '100%',
-              backgroundColor: i % 2 === 0 ? '#CDEBC4' : '#E3DFFD',
-              borderRadius: '8px 8px 4px 4px',
-              border: '2px solid rgba(0,0,0,0.05)'
-            }}
-          />
-          <span style={{ fontSize: '12px', color: colors.textSub, marginTop: '4px', fontFamily: 'sans-serif' }}>
-            {['S','M','T','W','T','F','S'][i]}
-          </span>
-        </div>
-      ))}
-    </div>
+    <TiltCard style={{ marginBottom: '24px' }}>
+      <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', color: 'white', fontWeight: 600 }}>
+        Weekly Activity
+      </h3>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 120, gap: '8px' }}>
+        {data.map((val, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: `${(val / 70) * 100}%` }}
+              transition={{ ...SPRING_CONFIG, delay: i * 0.1 }}
+              style={{
+                width: '100%',
+                background: i % 2 === 0
+                  ? 'linear-gradient(180deg, rgba(59, 130, 246, 0.8) 0%, rgba(59, 130, 246, 0.4) 100%)'
+                  : 'linear-gradient(180deg, rgba(249, 115, 22, 0.8) 0%, rgba(249, 115, 22, 0.4) 100%)',
+                borderRadius: '8px',
+                boxShadow: i % 2 === 0
+                  ? '0 0 15px rgba(59, 130, 246, 0.4)'
+                  : '0 0 15px rgba(249, 115, 22, 0.4)',
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'][i]}
+            </span>
+          </div>
+        ))}
+      </div>
+    </TiltCard>
   );
 };
+
+// --- GLASS TOGGLE SWITCH ---
+const GlassToggle: React.FC<{ enabled: boolean; onToggle: () => void }> = ({ enabled, onToggle }) => (
+  <motion.div
+    onClick={onToggle}
+    whileTap={{ scale: 0.95 }}
+    style={{
+      width: 48,
+      height: 26,
+      background: enabled ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+      border: enabled ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '100px',
+      position: 'relative',
+      cursor: 'pointer',
+      boxShadow: enabled ? '0 0 15px rgba(59, 130, 246, 0.4)' : 'none',
+    }}
+  >
+    <motion.div
+      animate={{ left: enabled ? 24 : 2 }}
+      transition={SPRING_CONFIG}
+      style={{
+        width: 20,
+        height: 20,
+        background: 'white',
+        borderRadius: '50%',
+        position: 'absolute',
+        top: 2,
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+      }}
+    />
+  </motion.div>
+);
 
 // --- MAIN APP ---
 export default function App() {
@@ -238,10 +433,6 @@ export default function App() {
   const [fireStreak, setFireStreak] = useState(getStoredStreak().streak);
   const [isDarkMode, setIsDarkMode] = useState(getDarkMode());
 
-  // Get colors based on dark mode
-  const COLORS = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
-
-  // Toggle dark mode
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
@@ -254,157 +445,234 @@ export default function App() {
     setIsRunning(false);
   };
 
-  const containerStyle: React.CSSProperties = {
-    maxWidth: '480px', margin: '0 auto', minHeight: '100vh',
-    backgroundColor: COLORS.bg, fontFamily: 'Segoe UI, sans-serif', position: 'relative', paddingBottom: '100px',
-    overflow: 'hidden'
-  };
-
   const renderContent = () => {
     if (activeTab === 'Timer') return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ padding: '24px', textAlign: 'center' }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_CONFIG}
+        style={{ padding: '32px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px', alignItems: 'flex-start' }}>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ color: COLORS.textSub, fontSize: '16px' }}>Good morning,</div>
-            <h2 style={{ margin: 0, fontSize: '32px', color: COLORS.textMain, fontWeight: '800' }}>Focus Time</h2>
-          </div>
-          <Settings color={COLORS.textMain} style={{ background: COLORS.cardBg, padding: 8, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: 200,
+          color: 'white',
+          marginBottom: '48px',
+          letterSpacing: '0.1em'
+        }}>
+          FOCUS SESSION
+        </h1>
+
+        <TiltCard style={{ marginBottom: '32px' }}>
+          <GlowingTimer totalSeconds={1500} isRunning={isRunning} />
+        </TiltCard>
+
+        <div style={{ marginBottom: '32px' }}>
+          <FireStreakPill streak={fireStreak} />
         </div>
 
-        {/* Fire Streak Badge */}
-        <FireStreakBadge streak={fireStreak} />
-
-        <CircularTimer totalSeconds={1500} isRunning={isRunning} colors={COLORS} />
-
-        <div style={{ margin: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="https://img.icons8.com/doodle/96/sprout.png" alt="Mascot" width="100" />
-          <div style={{ background: COLORS.cardBg, padding: '6px 16px', borderRadius: '16px', marginTop: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', fontSize: '14px', fontWeight: 'bold', color: COLORS.textMain }}>
-            Sprout Stage 1
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '300px', margin: '0 auto' }}>
+          {!isRunning ? (
+            <TactileButton text="START FOCUS" icon={Play} onClick={() => setIsRunning(true)} variant="primary" />
+          ) : (
+            <>
+              <TactileButton text="PAUSE" icon={Pause} onClick={() => setIsRunning(false)} variant="secondary" />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <TactileButton text="COMPLETE" onClick={handleCompleteSession} variant="primary" />
+                </div>
+                <TactileButton icon={RotateCcw} onClick={() => setIsRunning(false)} variant="ghost" />
+              </div>
+            </>
+          )}
         </div>
-
-        {!isRunning ? (
-          <BouncyBtn text="Start Focus" color={COLORS.bluePrimary} icon={Play} onClick={() => setIsRunning(true)} />
-        ) : (
-          <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-            <BouncyBtn text="Pause" color={COLORS.purpleAccent} icon={Pause} onClick={() => setIsRunning(false)} />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <BouncyBtn small text="Complete Session" color={COLORS.greenAccent} onClick={handleCompleteSession} />
-              <BouncyBtn small color={COLORS.textSub} icon={RotateCcw} onClick={() => setIsRunning(false)} />
-            </div>
-          </div>
-        )}
       </motion.div>
     );
 
     if (activeTab === 'Stats') return (
-      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-          <ChevronLeft color={COLORS.textMain} />
-          <h2 style={{ margin: '0 0 0 16px', fontSize: '28px', color: COLORS.textMain }}>Stats</h2>
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={SPRING_CONFIG}
+        style={{ padding: '32px 24px', position: 'relative', zIndex: 1 }}
+      >
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: 200,
+          color: 'white',
+          marginBottom: '32px',
+          letterSpacing: '0.1em'
+        }}>
+          STATISTICS
+        </h1>
+
+        <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+          <FireStreakPill streak={fireStreak} />
         </div>
 
-        {/* Fire Streak in Stats */}
-        <FireStreakBadge streak={fireStreak} />
+        <StatsCard />
 
-        <div style={{ background: COLORS.cardBg, padding: '24px', borderRadius: '32px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', color: COLORS.textMain }}>Study Time</h3>
-          <SketchyBarChart colors={COLORS} />
-        </div>
-        <div style={{ background: COLORS.bluePrimary, padding: '20px', borderRadius: '24px', display: 'flex', alignItems: 'center', color: 'white' }}>
-          <div style={{ background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', marginRight: '16px' }}>
-            <User color="white" />
+        <TiltCard>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'rgba(59, 130, 246, 0.2)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)'
+            }}>
+              <User size={24} color="#3B82F6" />
+            </div>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 600, color: 'white' }}>Level 5</div>
+              <div style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)' }}>450 / 1000 XP</div>
+            </div>
           </div>
-          <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Level Up soon!</span>
-        </div>
+        </TiltCard>
       </motion.div>
     );
 
     if (activeTab === 'Avatar') return (
-        <div style={{ padding: '24px', textAlign: 'center', paddingTop: '100px' }}>
-            <img src="https://img.icons8.com/doodle/96/happy.png" width="120" style={{marginBottom: 20}} />
-            <h2 style={{color: COLORS.textMain}}>Break Time!</h2>
-            <p style={{color: COLORS.textSub}}>Take a deep breath.</p>
-        </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={SPRING_CONFIG}
+        style={{ padding: '80px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
+      >
+        <TiltCard>
+          <img src="https://img.icons8.com/doodle/96/happy.png" width="120" style={{ marginBottom: 24 }} alt="avatar" />
+          <h2 style={{ fontSize: '24px', fontWeight: 300, color: 'white', marginBottom: '12px' }}>Break Time</h2>
+          <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '14px' }}>Take a deep breath and relax</p>
+        </TiltCard>
+      </motion.div>
     );
 
     return (
-        <div style={{ padding: '24px' }}>
-            <h2 style={{ color: COLORS.textMain }}>Settings</h2>
-            <div style={{ background: COLORS.cardBg, padding: '10px', borderRadius: '20px', marginTop: 20 }}>
-                {[
-                    { icon: Volume2, label: 'Sound', enabled: false, toggle: () => {} },
-                    { icon: Bell, label: 'Notifications', enabled: false, toggle: () => {} },
-                    { icon: Moon, label: 'Dark Mode', enabled: isDarkMode, toggle: toggleDarkMode }
-                ].map((item, i) => (
-                    <div
-                        key={i}
-                        onClick={item.toggle}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '16px',
-                            borderBottom: i !== 2 ? `1px solid ${isDarkMode ? '#3a3f47' : '#f0f0f0'}` : 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <item.icon size={20} color={COLORS.textMain} />
-                        <span style={{ marginLeft: 16, flex: 1, fontWeight: '500', color: COLORS.textMain }}>{item.label}</span>
-                        <motion.div
-                            style={{
-                                width: 40,
-                                height: 24,
-                                background: item.enabled ? COLORS.greenAccent : '#E0E0E0',
-                                borderRadius: 20,
-                                position: 'relative',
-                                transition: 'background-color 0.3s'
-                            }}
-                        >
-                            <motion.div
-                                animate={{ left: item.enabled ? 18 : 2 }}
-                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                                style={{
-                                    width: 20,
-                                    height: 20,
-                                    background: 'white',
-                                    borderRadius: '50%',
-                                    position: 'absolute',
-                                    top: 2,
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                }}
-                            />
-                        </motion.div>
-                    </div>
-                ))}
-            </div>
-        </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={SPRING_CONFIG}
+        style={{ padding: '32px 24px', position: 'relative', zIndex: 1 }}
+      >
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: 200,
+          color: 'white',
+          marginBottom: '32px',
+          letterSpacing: '0.1em'
+        }}>
+          SETTINGS
+        </h1>
+
+        <TiltCard>
+          {[
+            { icon: Volume2, label: 'Sound', enabled: false, toggle: () => { } },
+            { icon: Bell, label: 'Notifications', enabled: false, toggle: () => { } },
+            { icon: Moon, label: 'Dark Mode', enabled: isDarkMode, toggle: toggleDarkMode }
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              whileHover={{ x: 4 }}
+              transition={SPRING_CONFIG}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '20px 0',
+                borderBottom: i !== 2 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+              }}
+            >
+              <item.icon size={20} color="white" style={{ opacity: 0.7 }} />
+              <span style={{ marginLeft: 16, flex: 1, color: 'white', fontSize: '16px', fontWeight: 500 }}>
+                {item.label}
+              </span>
+              <GlassToggle enabled={item.enabled} onToggle={item.toggle} />
+            </motion.div>
+          ))}
+        </TiltCard>
+      </motion.div>
     );
   };
 
   return (
-    <div style={containerStyle}>
-      {renderContent()}
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(180deg, #050505 0%, #0F1115 100%)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Gradient Orbs */}
+      <GradientOrbs />
 
-      {/* Tab Bar */}
+      {/* Content */}
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: '480px', background: COLORS.cardBg,
-        borderRadius: '32px 32px 0 0', boxShadow: '0 -5px 20px rgba(0,0,0,0.05)',
-        display: 'flex', justifyContent: 'space-around', padding: '16px 16px 24px 16px', zIndex: 100
+        maxWidth: '480px',
+        margin: '0 auto',
+        paddingBottom: '100px',
+        position: 'relative',
       }}>
-        {['Timer', 'Stats', 'Avatar', 'Settings'].map(tab => {
-            const isActive = activeTab === tab;
-            const Icon = { Timer: Home, Stats: BarChart2, Avatar: User, Settings: Settings }[tab] as LucideIcon;
-            return (
-              <div key={tab} onClick={() => setActiveTab(tab)} style={{ cursor: 'pointer', opacity: isActive ? 1 : 0.4, transition: '0.2s' }}>
-                <Icon color={isActive ? COLORS.bluePrimary : COLORS.textMain} size={28} strokeWidth={isActive ? 2.5 : 2} />
-              </div>
-            );
-        })}
+        {renderContent()}
       </div>
+
+      {/* Glass Tab Bar */}
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={SPRING_CONFIG}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '480px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: 'none',
+          borderRadius: '32px 32px 0 0',
+          boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.4)',
+          display: 'flex',
+          justifyContent: 'space-around',
+          padding: '20px 16px 28px 16px',
+          zIndex: 100
+        }}
+      >
+        {[
+          { id: 'Timer', icon: Home },
+          { id: 'Stats', icon: BarChart2 },
+          { id: 'Avatar', icon: User },
+          { id: 'Settings', icon: SettingsIcon }
+        ].map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <motion.div
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              whileTap={TACTILE_PRESS}
+              transition={SPRING_CONFIG}
+              style={{
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '12px',
+                background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                border: isActive ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
+                boxShadow: isActive ? '0 0 20px rgba(59, 130, 246, 0.3)' : 'none',
+              }}
+            >
+              <tab.icon
+                color={isActive ? '#3B82F6' : 'rgba(255, 255, 255, 0.4)'}
+                size={24}
+                strokeWidth={isActive ? 2.5 : 2}
+              />
+            </motion.div>
+          );
+        })}
+      </motion.div>
     </div>
   );
 }
