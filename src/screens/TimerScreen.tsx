@@ -81,14 +81,17 @@ const TimerScreen: React.FC = () => {
   };
 
   // Handle drag to adjust time
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleDragStart = (e: React.PointerEvent) => {
     if (timer.isRunning || timerMode !== 'study') return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
+    if (circleRef.current) {
+      circleRef.current.setPointerCapture(e.pointerId);
+    }
   };
 
-  const handleDragMove = (e: MouseEvent | TouchEvent) => {
+  const handleDragMove = (e: React.PointerEvent) => {
     if (!isDragging || !circleRef.current) return;
     e.preventDefault();
 
@@ -96,10 +99,7 @@ const TimerScreen: React.FC = () => {
     const centerX = circle.left + circle.width / 2;
     const centerY = circle.top + circle.height / 2;
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-    const angle = Math.atan2(clientY - centerY, clientX - centerX);
+    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
     const degrees = ((angle * 180) / Math.PI + 90 + 360) % 360;
 
     // Map 360 degrees to 5-60 minutes
@@ -107,29 +107,18 @@ const TimerScreen: React.FC = () => {
     setCustomDuration(newMinutes);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.PointerEvent) => {
     if (isDragging) {
       setIsDragging(false);
+      if (circleRef.current) {
+        circleRef.current.releasePointerCapture(e.pointerId);
+      }
       // Save the custom duration to settings
       updateSettings({ studyDuration: customDuration });
     }
   };
 
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('touchmove', handleDragMove, { passive: false });
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchend', handleDragEnd);
-
-      return () => {
-        window.removeEventListener('mousemove', handleDragMove);
-        window.removeEventListener('touchmove', handleDragMove);
-        window.removeEventListener('mouseup', handleDragEnd);
-        window.removeEventListener('touchend', handleDragEnd);
-      };
-    }
-  }, [isDragging, customDuration]);
+  // No useEffect needed with pointer events - they're handled directly on the SVG
 
   return (
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
@@ -157,8 +146,11 @@ const TimerScreen: React.FC = () => {
             className="transform -rotate-90 cursor-pointer"
             width="280"
             height="280"
-            onMouseDown={handleDragStart}
-            onTouchStart={handleDragStart}
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
+            style={{ touchAction: 'none' }}
           >
             <circle
               cx="140"
