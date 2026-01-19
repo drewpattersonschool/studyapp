@@ -190,22 +190,40 @@ const TimerScreen: React.FC = () => {
             {/* Drag indicator when not running */}
             {!timer.isRunning && timerMode === 'study' && (
               <>
+                {/* Outer glow for visibility */}
                 <circle
                   cx="140"
                   cy="20"
-                  r="8"
+                  r="16"
+                  fill="rgba(0,0,0,0.2)"
+                  className={isDragging ? 'scale-125' : ''}
+                />
+                {/* Main black draggable circle */}
+                <circle
+                  cx="140"
+                  cy="20"
+                  r="12"
+                  fill="#2a2a2a"
+                  stroke="white"
+                  strokeWidth="2"
+                  className={`cursor-grab ${isDragging ? 'scale-110 cursor-grabbing' : ''}`}
+                  style={{ transition: 'transform 0.2s' }}
+                />
+                {/* Inner white dot for visibility */}
+                <circle
+                  cx="140"
+                  cy="20"
+                  r="4"
                   fill="white"
-                  opacity="0.8"
-                  className={isDragging ? 'scale-150' : ''}
                 />
                 {isDragging && (
                   <text
                     x="140"
                     y="270"
                     textAnchor="middle"
-                    fill="white"
-                    fontSize="14"
-                    fontWeight="600"
+                    fill="rgba(0,0,0,0.8)"
+                    fontSize="16"
+                    fontWeight="700"
                     className="rotate-90"
                   >
                     {customDuration} min
@@ -224,9 +242,14 @@ const TimerScreen: React.FC = () => {
 
       {/* Drag instruction */}
       {!timer.isRunning && timerMode === 'study' && !isDragging && (
-        <p className="text-center text-sm text-text-secondary mb-4 opacity-70">
-          Drag the circle to adjust time
-        </p>
+        <div className="text-center mb-4">
+          <p className="text-sm font-medium text-text-primary mb-1">
+            🔄 Drag the black circle to adjust time
+          </p>
+          <p className="text-xs text-text-secondary">
+            Spin around to set 5-60 minutes
+          </p>
+        </div>
       )}
 
       {/* Character */}
