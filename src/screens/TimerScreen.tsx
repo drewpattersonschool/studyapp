@@ -1,20 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTimer } from '../hooks/useTimer';
 import { useUserData } from '../hooks/useUserData';
+import { useTheme } from '../contexts/ThemeContext';
 import Character from '../components/Character';
 import type { TimerMode } from '../types';
 import { getWeeklyMinutes } from '../utils/storage';
 
 const TimerScreen: React.FC = () => {
-  const { userData, completeSession } = useUserData();
+  const navigate = useNavigate();
+  const { userData, completeSession, updateSettings } = useUserData();
+  const { getGradientClass } = useTheme();
   const [timerMode, setTimerMode] = useState<TimerMode>('study');
   const [showCelebration, setShowCelebration] = useState(false);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
+  const [customDuration, setCustomDuration] = useState(userData.settings.studyDuration);
+  const [isDragging, setIsDragging] = useState(false);
+  const circleRef = useRef<SVGSVGElement>(null);
 
   const getDuration = () => {
     switch (timerMode) {
       case 'study':
-        return userData.settings.studyDuration;
+        return customDuration;
       case 'shortBreak':
         return userData.settings.shortBreakDuration;
       case 'longBreak':
@@ -24,7 +31,7 @@ const TimerScreen: React.FC = () => {
 
   const handleTimerComplete = () => {
     if (timerMode === 'study') {
-      completeSession(userData.settings.studyDuration);
+      completeSession(customDuration);
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 3000);
 
@@ -36,7 +43,7 @@ const TimerScreen: React.FC = () => {
     } else {
       // Break complete, switch back to study
       setTimerMode('study');
-      timer.reset(userData.settings.studyDuration);
+      timer.reset(customDuration);
     }
   };
 
@@ -51,20 +58,15 @@ const TimerScreen: React.FC = () => {
   }, [userData]);
 
   useEffect(() => {
-    timer.reset(getDuration());
-  }, [timerMode, userData.settings]);
+    if (!timer.isRunning) {
+      timer.reset(getDuration());
+    }
+  }, [customDuration]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getGradientClass = () => {
-    if (timerMode === 'study') {
-      return 'gradient-bg-blue';
-    }
-    return 'gradient-bg-green';
   };
 
   const progressSessionToNext = () => {
@@ -78,6 +80,55 @@ const TimerScreen: React.FC = () => {
     return Math.min(Math.max(progress, 0), 100);
   };
 
+  // Handle drag to adjust time
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (timer.isRunning || timerMode !== 'study') return;
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleDragMove = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging || !circleRef.current) return;
+
+    const circle = circleRef.current.getBoundingClientRect();
+    const centerX = circle.left + circle.width / 2;
+    const centerY = circle.top + circle.height / 2;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const angle = Math.atan2(clientY - centerY, clientX - centerX);
+    const degrees = ((angle * 180) / Math.PI + 90 + 360) % 360;
+
+    // Map 360 degrees to 5-60 minutes
+    const newMinutes = Math.round(5 + (degrees / 360) * 55);
+    setCustomDuration(newMinutes);
+  };
+
+  const handleDragEnd = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      // Save the custom duration to settings
+      updateSettings({ studyDuration: customDuration });
+    }
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('touchmove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchend', handleDragEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('touchmove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchend', handleDragEnd);
+      };
+    }
+  }, [isDragging, customDuration]);
+
   return (
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
@@ -85,7 +136,10 @@ const TimerScreen: React.FC = () => {
         <h1 className="text-2xl font-semibold text-text-primary">
           {timerMode === 'study' ? 'Timer' : 'Break'}
         </h1>
-        <button className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+        <button
+          onClick={() => navigate('/settings')}
+          className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center"
+        >
           <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -96,7 +150,14 @@ const TimerScreen: React.FC = () => {
       {/* Timer Circle */}
       <div className="flex justify-center mb-6">
         <div className="relative">
-          <svg className="transform -rotate-90" width="280" height="280">
+          <svg
+            ref={circleRef}
+            className="transform -rotate-90 cursor-pointer"
+            width="280"
+            height="280"
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+          >
             <circle
               cx="140"
               cy="140"
@@ -126,6 +187,32 @@ const TimerScreen: React.FC = () => {
               opacity="0.9"
               className="transition-all duration-1000"
             />
+            {/* Drag indicator when not running */}
+            {!timer.isRunning && timerMode === 'study' && (
+              <>
+                <circle
+                  cx="140"
+                  cy="20"
+                  r="8"
+                  fill="white"
+                  opacity="0.8"
+                  className={isDragging ? 'scale-150' : ''}
+                />
+                {isDragging && (
+                  <text
+                    x="140"
+                    y="270"
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="14"
+                    fontWeight="600"
+                    className="rotate-90"
+                  >
+                    {customDuration} min
+                  </text>
+                )}
+              </>
+            )}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-6xl font-light text-text-primary">
@@ -135,9 +222,18 @@ const TimerScreen: React.FC = () => {
         </div>
       </div>
 
+      {/* Drag instruction */}
+      {!timer.isRunning && timerMode === 'study' && !isDragging && (
+        <p className="text-center text-sm text-text-secondary mb-4 opacity-70">
+          Drag the circle to adjust time
+        </p>
+      )}
+
       {/* Character */}
       <div className="flex justify-center mb-4">
-        <Character stage={userData.currentStage} />
+        <button onClick={() => navigate('/avatar')} className="transition-transform hover:scale-105 active:scale-95">
+          <Character stage={userData.currentStage} />
+        </button>
       </div>
 
       {/* Progress Bar */}
@@ -180,7 +276,7 @@ const TimerScreen: React.FC = () => {
           <button
             onClick={() => {
               setTimerMode('study');
-              timer.reset(userData.settings.studyDuration);
+              timer.reset(customDuration);
             }}
             className="px-8 py-2 bg-white/50 text-text-primary rounded-full text-sm font-medium hover:bg-white/70 transition-all duration-200"
           >

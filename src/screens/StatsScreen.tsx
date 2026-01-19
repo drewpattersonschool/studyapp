@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useUserData } from '../hooks/useUserData';
+import { useTheme } from '../contexts/ThemeContext';
 import { getWeeklyData } from '../utils/storage';
 import { CHARACTER_STAGES } from '../types';
 
 const StatsScreen: React.FC = () => {
   const { userData } = useUserData();
+  const { getGradientClass } = useTheme();
   const [weeklyData, setWeeklyData] = useState<number[]>([]);
   const weekDays = ['Su', 'M', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -36,7 +38,7 @@ const StatsScreen: React.FC = () => {
   const sessionsToNext = nextStage ? nextStage.requiredSessions - userData.totalCompletedSessions : 0;
 
   return (
-    <div className="min-h-screen gradient-bg-purple pb-20 px-6 pt-8">
+    <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
       <div className="flex items-center mb-8">
         <h1 className="text-2xl font-semibold text-text-primary">Stats</h1>

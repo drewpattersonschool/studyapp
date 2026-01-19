@@ -1,8 +1,11 @@
 import React from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 
 const JournalScreen: React.FC = () => {
+  const { getGradientClass } = useTheme();
+
   return (
-    <div className="min-h-screen gradient-bg-peach pb-20 px-6 pt-8">
+    <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
       <div className="flex items-center mb-8">
         <h1 className="text-2xl font-semibold text-text-primary">Study Journal</h1>

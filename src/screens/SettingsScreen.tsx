@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUserData } from '../hooks/useUserData';
+import { useTheme } from '../contexts/ThemeContext';
 import type { ThemeColor } from '../types';
 import Character from '../components/Character';
 
 const SettingsScreen: React.FC = () => {
+  const navigate = useNavigate();
   const { userData, updateSettings } = useUserData();
+  const { getGradientClass } = useTheme();
   const [showProfile, setShowProfile] = useState(false);
 
   const handleToggle = (setting: keyof typeof userData.settings, value: boolean) => {
@@ -28,12 +32,12 @@ const SettingsScreen: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen gradient-bg-beige pb-20 px-6 pt-8">
+    <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold text-text-primary">Settings</h1>
         <button
-          onClick={() => setShowProfile(true)}
+          onClick={() => navigate('/avatar')}
           className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-soft"
         >
           <svg className="w-6 h-6 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
