@@ -15,7 +15,6 @@ const TimerScreen: React.FC = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
   const [customDuration, setCustomDuration] = useState(userData.settings.studyDuration);
-  const [isDragging, setIsDragging] = useState(false);
   const circleRef = useRef<SVGSVGElement>(null);
 
   const getDuration = () => {
@@ -80,45 +79,13 @@ const TimerScreen: React.FC = () => {
     return Math.min(Math.max(progress, 0), 100);
   };
 
-  // Handle drag to adjust time
-  const handleDragStart = (e: React.PointerEvent) => {
+  // Handle time adjustment with buttons
+  const adjustTime = (delta: number) => {
     if (timer.isRunning || timerMode !== 'study') return;
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-    if (circleRef.current) {
-      circleRef.current.setPointerCapture(e.pointerId);
-    }
+    const newDuration = Math.max(5, Math.min(60, customDuration + delta));
+    setCustomDuration(newDuration);
+    updateSettings({ studyDuration: newDuration });
   };
-
-  const handleDragMove = (e: React.PointerEvent) => {
-    if (!isDragging || !circleRef.current) return;
-    e.preventDefault();
-
-    const circle = circleRef.current.getBoundingClientRect();
-    const centerX = circle.left + circle.width / 2;
-    const centerY = circle.top + circle.height / 2;
-
-    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-    const degrees = ((angle * 180) / Math.PI + 90 + 360) % 360;
-
-    // Map 360 degrees to 5-60 minutes
-    const newMinutes = Math.round(5 + (degrees / 360) * 55);
-    setCustomDuration(newMinutes);
-  };
-
-  const handleDragEnd = (e: React.PointerEvent) => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (circleRef.current) {
-        circleRef.current.releasePointerCapture(e.pointerId);
-      }
-      // Save the custom duration to settings
-      updateSettings({ studyDuration: customDuration });
-    }
-  };
-
-  // No useEffect needed with pointer events - they're handled directly on the SVG
 
   return (
     <div className={`min-h-screen ${getGradientClass()} transition-all duration-700 pb-20 px-6 pt-8`}>
@@ -143,14 +110,9 @@ const TimerScreen: React.FC = () => {
         <div className="relative">
           <svg
             ref={circleRef}
-            className="transform -rotate-90 cursor-pointer"
+            className="transform -rotate-90"
             width="280"
             height="280"
-            onPointerDown={handleDragStart}
-            onPointerMove={handleDragMove}
-            onPointerUp={handleDragEnd}
-            onPointerCancel={handleDragEnd}
-            style={{ touchAction: 'none' }}
           >
             <circle
               cx="140"
@@ -181,50 +143,6 @@ const TimerScreen: React.FC = () => {
               opacity="0.9"
               className="transition-all duration-1000"
             />
-            {/* Drag indicator when not running */}
-            {!timer.isRunning && timerMode === 'study' && (
-              <>
-                {/* Outer glow for visibility */}
-                <circle
-                  cx="140"
-                  cy="20"
-                  r="16"
-                  fill="rgba(0,0,0,0.2)"
-                  className={isDragging ? 'scale-125' : ''}
-                />
-                {/* Main black draggable circle */}
-                <circle
-                  cx="140"
-                  cy="20"
-                  r="12"
-                  fill="#2a2a2a"
-                  stroke="white"
-                  strokeWidth="2"
-                  className={`cursor-grab ${isDragging ? 'scale-110 cursor-grabbing' : ''}`}
-                  style={{ transition: 'transform 0.2s' }}
-                />
-                {/* Inner white dot for visibility */}
-                <circle
-                  cx="140"
-                  cy="20"
-                  r="4"
-                  fill="white"
-                />
-                {isDragging && (
-                  <text
-                    x="140"
-                    y="270"
-                    textAnchor="middle"
-                    fill="rgba(0,0,0,0.8)"
-                    fontSize="16"
-                    fontWeight="700"
-                    className="rotate-90"
-                  >
-                    {customDuration} min
-                  </text>
-                )}
-              </>
-            )}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-6xl font-light text-text-primary">
@@ -234,15 +152,25 @@ const TimerScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Drag instruction */}
-      {!timer.isRunning && timerMode === 'study' && !isDragging && (
-        <div className="text-center mb-4">
-          <p className="text-sm font-medium text-text-primary mb-1">
-            🔄 Drag the black circle to adjust time
-          </p>
-          <p className="text-xs text-text-secondary">
-            Spin around to set 5-60 minutes
-          </p>
+      {/* Time adjustment buttons */}
+      {!timer.isRunning && timerMode === 'study' && (
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <button
+            onClick={() => adjustTime(-5)}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-sm flex items-center justify-center text-2xl font-medium text-text-primary hover:bg-white/70 active:scale-95 transition-all shadow-soft"
+          >
+            −
+          </button>
+          <div className="text-center min-w-[100px]">
+            <p className="text-2xl font-semibold text-text-primary">{customDuration} min</p>
+            <p className="text-xs text-text-secondary">Study Duration</p>
+          </div>
+          <button
+            onClick={() => adjustTime(5)}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-sm flex items-center justify-center text-2xl font-medium text-text-primary hover:bg-white/70 active:scale-95 transition-all shadow-soft"
+          >
+            +
+          </button>
         </div>
       )}
 

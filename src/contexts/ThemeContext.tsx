@@ -13,13 +13,14 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { userData, updateSettings } = useUserData();
+  const currentTheme = userData.settings.selectedTheme;
 
   const setTheme = (theme: ThemeColor) => {
     updateSettings({ selectedTheme: theme });
   };
 
   const getGradientClass = () => {
-    switch (userData.settings.selectedTheme) {
+    switch (currentTheme) {
       case 'blue':
         return 'gradient-bg-blue';
       case 'green':
@@ -31,12 +32,15 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       case 'beige':
         return 'gradient-bg-beige';
       default:
-        return 'gradient-bg-blue';
+        return 'gradient-bg-purple';
     }
   };
 
+  // Create a unique key that changes when theme changes to force re-render
+  const themeKey = `theme-${currentTheme}`;
+
   return (
-    <ThemeContext.Provider value={{ theme: userData.settings.selectedTheme, setTheme, getGradientClass }}>
+    <ThemeContext.Provider value={{ theme: currentTheme, setTheme, getGradientClass }} key={themeKey}>
       {children}
     </ThemeContext.Provider>
   );
