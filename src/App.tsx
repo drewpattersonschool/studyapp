@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, BarChart2, Settings, User, Play, Pause, RotateCcw, ChevronLeft, Volume2, Bell, Moon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import type { LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // --- THEME ---
 const COLORS = {
@@ -56,7 +57,13 @@ const updateStreak = () => {
 // --- COMPONENTS ---
 
 // 1. Bouncy Button (Web Version)
-const BouncyBtn = ({ text, icon: Icon, color, onClick, small }) => (
+const BouncyBtn = ({ text, icon: Icon, color, onClick, small }: {
+  text?: string;
+  icon?: LucideIcon;
+  color: string;
+  onClick: () => void;
+  small?: boolean;
+}) => (
   <motion.button
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.95, translateY: 2 }}
@@ -87,7 +94,7 @@ const BouncyBtn = ({ text, icon: Icon, color, onClick, small }) => (
 );
 
 // 2. Animated Progress Ring (Web Version)
-const CircularTimer = ({ totalSeconds, isRunning }) => {
+const CircularTimer = ({ totalSeconds, isRunning }: { totalSeconds: number; isRunning: boolean }) => {
   const size = 280;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
@@ -95,9 +102,9 @@ const CircularTimer = ({ totalSeconds, isRunning }) => {
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
 
   useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+      interval = setInterval(() => setTimeLeft((t: number) => t - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [isRunning, timeLeft]);
@@ -105,7 +112,7 @@ const CircularTimer = ({ totalSeconds, isRunning }) => {
   const progress = 1 - (timeLeft / totalSeconds);
   const dashOffset = circumference * (1 - progress);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -148,7 +155,7 @@ const CircularTimer = ({ totalSeconds, isRunning }) => {
 };
 
 // 3. Fire Streak Badge
-const FireStreakBadge = ({ streak }) => (
+const FireStreakBadge = ({ streak }: { streak: number }) => (
   <motion.div
     initial={{ scale: 0 }}
     animate={{ scale: 1 }}
@@ -216,7 +223,7 @@ export default function App() {
     setIsRunning(false);
   };
 
-  const containerStyle = {
+  const containerStyle: React.CSSProperties = {
     maxWidth: '480px', margin: '0 auto', minHeight: '100vh',
     backgroundColor: COLORS.bg, fontFamily: 'Segoe UI, sans-serif', position: 'relative', paddingBottom: '100px',
     overflow: 'hidden'
@@ -328,7 +335,7 @@ export default function App() {
       }}>
         {['Timer', 'Stats', 'Avatar', 'Settings'].map(tab => {
             const isActive = activeTab === tab;
-            const Icon = { Timer: Home, Stats: BarChart2, Avatar: User, Settings: Settings }[tab];
+            const Icon = { Timer: Home, Stats: BarChart2, Avatar: User, Settings: Settings }[tab] as LucideIcon;
             return (
               <div key={tab} onClick={() => setActiveTab(tab)} style={{ cursor: 'pointer', opacity: isActive ? 1 : 0.4, transition: '0.2s' }}>
                 <Icon color={isActive ? COLORS.bluePrimary : COLORS.textMain} size={28} strokeWidth={isActive ? 2.5 : 2} />
