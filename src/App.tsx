@@ -67,10 +67,10 @@ const calculateXpForLevel = (level: number) => {
 };
 
 const getCharacterStage = (level: number) => {
-  if (level < 5) return 0; // Seed
-  if (level < 15) return 1; // Sprout
-  if (level < 30) return 2; // Flower
-  return 3; // Tree
+  if (level < 5) return 0; // Seedling
+  if (level < 10) return 1; // Toddler
+  if (level < 20) return 2; // Bloomer
+  return 3; // Guardian
 };
 
 const getBackgroundTheme = (level: number) => {
@@ -182,7 +182,7 @@ const AnimatedMeshGradient: React.FC<{ theme: 'morning' | 'twilight' | 'golden' 
 const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 120, level }) => {
   const [isBlinking, setIsBlinking] = useState(false);
   const stage = getCharacterStage(level);
-  const scale = 1 + (stage * 0.15); // Grows 15% per stage
+  const scale = 1 + (stage * 0.2); // Grows 20% per stage
 
   // Random blink effect
   useEffect(() => {
@@ -193,6 +193,10 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
 
     return () => clearInterval(blinkInterval);
   }, []);
+
+  // Stage-based colors
+  const leafColor = stage === 3 ? "#FCD34D" : "#10B981"; // Golden leaves for Stage 4
+  const leafDarkColor = stage === 3 ? "#F59E0B" : "#059669";
 
   return (
     <motion.svg
@@ -209,101 +213,210 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
       }}
     >
       <defs>
-        {/* Body Gradient */}
-        <radialGradient id="bodyGradient" cx="50%" cy="30%">
-          <stop offset="0%" stopColor="#A7F3D0" />
-          <stop offset="100%" stopColor="#34D399" />
+        {/* Body Gradient - 3D Shiny Effect */}
+        <radialGradient id="bodyGradient" cx="45%" cy="35%">
+          <stop offset="0%" stopColor="#D9F99D" />
+          <stop offset="50%" stopColor="#A3E635" />
+          <stop offset="100%" stopColor="#65A30D" />
+        </radialGradient>
+        {/* Golden Halo Gradient */}
+        <radialGradient id="haloGradient" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="rgba(251, 191, 36, 0.6)" />
+          <stop offset="100%" stopColor="rgba(251, 191, 36, 0)" />
         </radialGradient>
         {/* Shadow */}
-        <ellipse id="shadow" cx="50" cy="85" rx="20" ry="5" fill="rgba(0,0,0,0.1)" />
+        <ellipse id="shadow" cx="50" cy="88" rx="22" ry="6" fill="rgba(0,0,0,0.15)" />
       </defs>
+
+      {/* Stage 4: Golden Halo/Aura (Behind everything) */}
+      {stage === 3 && (
+        <motion.circle
+          cx="50"
+          cy="50"
+          r="40"
+          fill="url(#haloGradient)"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.6, 0.8, 0.6]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
 
       {/* Shadow */}
       <use href="#shadow" />
 
-      {/* Body - Organic bean shape using path */}
+      {/* Body - Organic bean/pear shape */}
       <motion.path
-        d="M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z"
+        d="M 35 42 Q 30 50, 32 62 Q 35 72, 42 77 Q 50 80, 58 77 Q 65 72, 68 62 Q 70 50, 65 42 Q 60 32, 50 30 Q 40 32, 35 42 Z"
         fill="url(#bodyGradient)"
         animate={{
           d: [
-            "M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z",
-            "M 36 42 Q 31 50, 33 60 Q 36 69, 43 74 Q 50 77, 57 74 Q 64 69, 67 60 Q 69 50, 64 42 Q 60 32, 50 30 Q 41 32, 36 42 Z",
-            "M 35 40 Q 30 50, 32 60 Q 35 70, 42 75 Q 50 78, 58 75 Q 65 70, 68 60 Q 70 50, 65 40 Q 60 30, 50 28 Q 40 30, 35 40 Z"
+            "M 35 42 Q 30 50, 32 62 Q 35 72, 42 77 Q 50 80, 58 77 Q 65 72, 68 62 Q 70 50, 65 42 Q 60 32, 50 30 Q 40 32, 35 42 Z",
+            "M 36 43 Q 31 50, 33 62 Q 36 71, 43 76 Q 50 79, 57 76 Q 64 71, 67 62 Q 69 50, 64 43 Q 60 33, 50 31 Q 41 33, 36 43 Z",
+            "M 35 42 Q 30 50, 32 62 Q 35 72, 42 77 Q 50 80, 58 77 Q 65 72, 68 62 Q 70 50, 65 42 Q 60 32, 50 30 Q 40 32, 35 42 Z"
           ]
         }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Left Leaf - Teardrop shape */}
+      {/* Stage 2+: Left Arm Nub */}
+      {stage >= 1 && (
+        <motion.ellipse
+          cx="28"
+          cy="58"
+          rx="5"
+          ry="7"
+          fill="#84CC16"
+          animate={{
+            cx: [28, 27, 28],
+            cy: [58, 60, 58]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
+
+      {/* Stage 2+: Right Arm Nub */}
+      {stage >= 1 && (
+        <motion.ellipse
+          cx="72"
+          cy="58"
+          rx="5"
+          ry="7"
+          fill="#84CC16"
+          animate={{
+            cx: [72, 73, 72],
+            cy: [58, 60, 58]
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+        />
+      )}
+
+      {/* Left Leaf - Grows bigger in Stage 2+ */}
       <motion.g
         animate={{
           rotate: [-5, 5, -5],
           originX: "40px",
-          originY: "25px"
+          originY: stage >= 1 ? "22px" : "25px"
         }}
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <path
-          d="M 40 25 Q 35 20, 32 18 Q 30 16, 28 18 Q 26 22, 30 28 Q 35 30, 40 28 Z"
-          fill="#10B981"
+          d={stage >= 1
+            ? "M 40 22 Q 33 16, 28 14 Q 25 12, 22 14 Q 19 18, 24 26 Q 32 30, 40 27 Z"
+            : "M 40 25 Q 35 20, 32 18 Q 30 16, 28 18 Q 26 22, 30 28 Q 35 30, 40 28 Z"
+          }
+          fill={leafColor}
         />
-        {/* Vein */}
         <path
-          d="M 40 25 Q 35 22, 32 20"
-          stroke="#059669"
+          d={stage >= 1
+            ? "M 40 22 Q 33 18, 28 16"
+            : "M 40 25 Q 35 22, 32 20"
+          }
+          stroke={leafDarkColor}
           strokeWidth="0.5"
           fill="none"
         />
       </motion.g>
 
-      {/* Right Leaf - Teardrop shape */}
+      {/* Right Leaf - Grows bigger in Stage 2+ */}
       <motion.g
         animate={{
           rotate: [5, -5, 5],
           originX: "60px",
-          originY: "25px"
+          originY: stage >= 1 ? "22px" : "25px"
         }}
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
       >
         <path
-          d="M 60 25 Q 65 20, 68 18 Q 70 16, 72 18 Q 74 22, 70 28 Q 65 30, 60 28 Z"
-          fill="#10B981"
+          d={stage >= 1
+            ? "M 60 22 Q 67 16, 72 14 Q 75 12, 78 14 Q 81 18, 76 26 Q 68 30, 60 27 Z"
+            : "M 60 25 Q 65 20, 68 18 Q 70 16, 72 18 Q 74 22, 70 28 Q 65 30, 60 28 Z"
+          }
+          fill={leafColor}
         />
-        {/* Vein */}
         <path
-          d="M 60 25 Q 65 22, 68 20"
-          stroke="#059669"
+          d={stage >= 1
+            ? "M 60 22 Q 67 18, 72 16"
+            : "M 60 25 Q 65 22, 68 20"
+          }
+          stroke={leafDarkColor}
           strokeWidth="0.5"
           fill="none"
         />
       </motion.g>
 
+      {/* Stage 3: Pink Flower on top of head */}
+      {stage === 2 && (
+        <motion.g
+          animate={{
+            rotate: [-3, 3, -3],
+            scale: [1, 1.05, 1]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {/* Flower Petals */}
+          <circle cx="50" cy="18" r="4" fill="#FCA5A5" />
+          <circle cx="45" cy="20" r="4" fill="#FCA5A5" />
+          <circle cx="55" cy="20" r="4" fill="#FCA5A5" />
+          <circle cx="47" cy="24" r="4" fill="#FCA5A5" />
+          <circle cx="53" cy="24" r="4" fill="#FCA5A5" />
+          {/* Flower Center */}
+          <circle cx="50" cy="21" r="3" fill="#FDE047" />
+        </motion.g>
+      )}
+
       {/* Left Eye */}
-      <motion.ellipse
-        cx="42"
-        cy="50"
-        rx="3"
-        ry={isBlinking ? "0.3" : "4"}
-        fill="#065F46"
-        animate={{ ry: isBlinking ? 0.3 : 4 }}
-        transition={{ duration: 0.1 }}
-      />
+      <motion.g>
+        <motion.ellipse
+          cx="42"
+          cy="52"
+          rx="3.5"
+          ry={isBlinking ? "0.3" : "4.5"}
+          fill="#065F46"
+          animate={{ ry: isBlinking ? 0.3 : 4.5 }}
+          transition={{ duration: 0.1 }}
+        />
+        {/* Eye Reflection */}
+        {!isBlinking && (
+          <ellipse
+            cx="43"
+            cy="50.5"
+            rx="1.2"
+            ry="1.5"
+            fill="white"
+            opacity="0.9"
+          />
+        )}
+      </motion.g>
 
       {/* Right Eye */}
-      <motion.ellipse
-        cx="58"
-        cy="50"
-        rx="3"
-        ry={isBlinking ? "0.3" : "4"}
-        fill="#065F46"
-        animate={{ ry: isBlinking ? 0.3 : 4 }}
-        transition={{ duration: 0.1 }}
-      />
+      <motion.g>
+        <motion.ellipse
+          cx="58"
+          cy="52"
+          rx="3.5"
+          ry={isBlinking ? "0.3" : "4.5"}
+          fill="#065F46"
+          animate={{ ry: isBlinking ? 0.3 : 4.5 }}
+          transition={{ duration: 0.1 }}
+        />
+        {/* Eye Reflection */}
+        {!isBlinking && (
+          <ellipse
+            cx="59"
+            cy="50.5"
+            rx="1.2"
+            ry="1.5"
+            fill="white"
+            opacity="0.9"
+          />
+        )}
+      </motion.g>
 
       {/* Smile */}
       <path
-        d="M 40 58 Q 50 63, 60 58"
+        d="M 40 60 Q 50 65, 60 60"
         stroke="#065F46"
         strokeWidth="2"
         strokeLinecap="round"
@@ -313,18 +426,18 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
       {/* Left Blush */}
       <ellipse
         cx="35"
-        cy="55"
-        rx="4"
-        ry="2.5"
+        cy="57"
+        rx="4.5"
+        ry="3"
         fill="rgba(252, 165, 165, 0.6)"
       />
 
       {/* Right Blush */}
       <ellipse
         cx="65"
-        cy="55"
-        rx="4"
-        ry="2.5"
+        cy="57"
+        rx="4.5"
+        ry="3"
         fill="rgba(252, 165, 165, 0.6)"
       />
     </motion.svg>
