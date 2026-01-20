@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Home, BarChart2, Settings as SettingsIcon, User, Play, Pause, RotateCcw, Volume2, Bell, Moon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 // --- STORAGE HELPERS ---
 const getDarkMode = () => {
@@ -443,21 +444,21 @@ const SoftButton: React.FC<{
   );
 };
 
-// --- ETHEREAL TIMER ---
-const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({ totalSeconds, isRunning }) => {
+// --- INTERACTIVE TIMER RING ---
+const InteractiveTimerRing: React.FC<{
+  minutes: number;
+  onMinutesChange: (minutes: number) => void;
+  isRunning: boolean;
+  timeLeft: number;
+  totalSeconds: number;
+}> = ({ minutes, onMinutesChange, isRunning, timeLeft, totalSeconds }) => {
   const size = 280;
   const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const [timeLeft, setTimeLeft] = useState(totalSeconds);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft((t: number) => t - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const progress = 1 - (timeLeft / totalSeconds);
   const dashOffset = circumference * (1 - progress);
@@ -468,19 +469,53 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calculate handle position based on minutes (when not running)
+  const angleFromMinutes = (mins: number) => {
+    // Map 5-60 minutes to 0-360 degrees
+    const normalized = (mins - 5) / (60 - 5); // 0-1
+    return normalized * 360 - 90; // -90 to start at top
+  };
+
+  const handleAngle = angleFromMinutes(minutes);
+  const handleX = centerX + radius * Math.cos((handleAngle * Math.PI) / 180);
+  const handleY = centerY + radius * Math.sin((handleAngle * Math.PI) / 180);
+
+  const handleDrag = (_event: any, info: any) => {
+    if (isRunning || !containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const containerCenterX = rect.left + rect.width / 2;
+    const containerCenterY = rect.top + rect.height / 2;
+
+    // Calculate angle from center using mouse position
+    const dx = info.point.x - containerCenterX;
+    const dy = info.point.y - containerCenterY;
+    let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+    // Normalize angle to 0-360
+    angle = (angle + 90 + 360) % 360;
+
+    // Map angle to minutes (5-60)
+    const normalized = angle / 360; // 0-1
+    const newMinutes = Math.round(5 + normalized * (60 - 5));
+    const clampedMinutes = Math.max(5, Math.min(60, newMinutes));
+
+    onMinutesChange(clampedMinutes);
+  };
+
   return (
-    <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(200, 220, 255, 0.3)" strokeWidth={strokeWidth} fill="none" />
+        <circle cx={centerX} cy={centerY} r={radius} stroke="rgba(200, 220, 255, 0.3)" strokeWidth={strokeWidth} fill="none" />
         <motion.circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={centerX}
+          cy={centerY}
           r={radius}
           stroke="url(#lavenderGradient)"
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
-          animate={{ strokeDashoffset: dashOffset }}
+          animate={{ strokeDashoffset: isRunning ? dashOffset : 0 }}
           strokeLinecap="round"
           transition={{ duration: 1, ease: "easeInOut" }}
         />
@@ -491,9 +526,52 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
           </linearGradient>
         </defs>
       </svg>
+
+      {/* Draggable Handle */}
+      {!isRunning && (
+        <motion.div
+          drag
+          dragMomentum={false}
+          onDrag={handleDrag}
+          dragElastic={0}
+          dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+          style={{
+            position: 'absolute',
+            left: handleX,
+            top: handleY,
+            transform: 'translate(-50%, -50%)',
+            cursor: 'grab',
+            touchAction: 'none',
+          }}
+          whileTap={{ scale: 1.1, cursor: 'grabbing' }}
+          animate={{ x: 0, y: 0 }}
+        >
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '3px solid rgba(167, 139, 250, 0.6)',
+            boxShadow: '0 4px 20px rgba(167, 139, 250, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'rgba(139, 92, 246, 0.9)',
+            fontFamily: "'Quicksand', sans-serif"
+          }}>
+            {minutes}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Center Display */}
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
         <motion.h1
-          key={timeLeft}
+          key={isRunning ? timeLeft : minutes}
           initial={{ scale: 1 }}
           animate={{ scale: [1, 1.01, 1] }}
           transition={{ duration: 1 }}
@@ -506,8 +584,23 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
             letterSpacing: '0.05em',
           }}
         >
-          {formatTime(timeLeft)}
+          {isRunning ? formatTime(timeLeft) : `${minutes}:00`}
         </motion.h1>
+        {!isRunning && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              fontSize: '14px',
+              color: 'rgba(100, 100, 150, 0.6)',
+              marginTop: '8px',
+              fontFamily: "'Quicksand', sans-serif",
+              fontWeight: 500
+            }}
+          >
+            {minutes * 10} XP
+          </motion.div>
+        )}
       </div>
     </div>
   );
@@ -680,8 +773,35 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(getDarkMode());
   const [userData, setUserData] = useState(getUserData());
   const [devLevel, setDevLevel] = useState(userData.level);
+  const [timerMinutes, setTimerMinutes] = useState(25);
+  const [timeLeft, setTimeLeft] = useState(timerMinutes * 60);
 
   const theme = getBackgroundTheme(userData.level);
+
+  // Update timeLeft when timerMinutes changes
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(timerMinutes * 60);
+    }
+  }, [timerMinutes, isRunning]);
+
+  // Countdown logic
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (isRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((t) => Math.max(0, t - 1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft]);
+
+  // Check for completion
+  useEffect(() => {
+    if (isRunning && timeLeft === 0) {
+      handleCompleteSession();
+    }
+  }, [timeLeft, isRunning]);
 
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -689,11 +809,37 @@ export default function App() {
     setDarkMode(newMode);
   };
 
+  const triggerCelebration = () => {
+    // Circular bubbles and leaves confetti
+    const count = 100;
+    const defaults = {
+      origin: { y: 0.6 },
+      zIndex: 9999
+    };
+
+    function fire(particleRatio: number, opts: any) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio),
+        shapes: ['circle'],
+        colors: ['#A3E635', '#10B981', '#A78BFA', '#93C5FD', '#FCA5A5'],
+      });
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
+  };
+
   const handleCompleteSession = () => {
     updateStreak();
     setIsRunning(false);
 
-    const xpGained = 100;
+    // XP Scaling Logic: XP = timerMinutes * 10
+    const xpGained = timerMinutes * 10;
     const newXp = userData.xp + xpGained;
     const requiredXp = calculateXpForLevel(userData.level);
 
@@ -713,6 +859,9 @@ export default function App() {
 
     setUserData(newData);
     saveUserData(newData);
+
+    // Trigger celebration!
+    triggerCelebration();
   };
 
   const handleDevLevelChange = (level: number) => {
@@ -752,7 +901,13 @@ export default function App() {
 
         <div style={{ minHeight: 0, flex: '0 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <GlassCard style={{ marginBottom: '24px', width: '100%', maxWidth: '400px' }}>
-            <EtherealTimer totalSeconds={1500} isRunning={isRunning} />
+            <InteractiveTimerRing
+              minutes={timerMinutes}
+              onMinutesChange={setTimerMinutes}
+              isRunning={isRunning}
+              timeLeft={timeLeft}
+              totalSeconds={timerMinutes * 60}
+            />
 
             <div style={{ margin: '32px 0', display: 'flex', justifyContent: 'center' }}>
               <SproutCharacter size={120} level={userData.level} />
