@@ -452,7 +452,7 @@ const InteractiveTimerRing: React.FC<{
   timeLeft: number;
   totalSeconds: number;
 }> = ({ minutes, onMinutesChange, isRunning, timeLeft, totalSeconds }) => {
-  const size = 280;
+  const size = 240;
   const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -547,8 +547,8 @@ const InteractiveTimerRing: React.FC<{
           animate={{ x: 0, y: 0 }}
         >
           <div style={{
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
             background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
@@ -558,7 +558,7 @@ const InteractiveTimerRing: React.FC<{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: 700,
             color: 'rgba(139, 92, 246, 0.9)',
             fontFamily: "'Quicksand', sans-serif"
@@ -576,7 +576,7 @@ const InteractiveTimerRing: React.FC<{
           animate={{ scale: [1, 1.01, 1] }}
           transition={{ duration: 1 }}
           style={{
-            fontSize: '3.5rem',
+            fontSize: '3rem',
             margin: 0,
             color: 'rgba(100, 100, 150, 0.9)',
             fontFamily: "'Quicksand', sans-serif",
@@ -591,9 +591,9 @@ const InteractiveTimerRing: React.FC<{
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              fontSize: '14px',
+              fontSize: '13px',
               color: 'rgba(100, 100, 150, 0.6)',
-              marginTop: '8px',
+              marginTop: '6px',
               fontFamily: "'Quicksand', sans-serif",
               fontWeight: 500
             }}
@@ -879,19 +879,23 @@ export default function App() {
     if (activeTab === 'Timer') return (
       <div style={{
         height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '40px 24px 24px',
+        alignItems: 'center',
+        padding: '2rem 1.5rem',
         position: 'relative',
         zIndex: 1
       }}>
-        <div>
+        {/* Top: Header */}
+        <div style={{ width: '100%', textAlign: 'center' }}>
           <h1 style={{
             fontSize: '1.5rem',
             fontWeight: 500,
             color: 'rgba(100, 100, 150, 0.8)',
-            marginBottom: '32px',
+            margin: 0,
             letterSpacing: '0.05em',
             fontFamily: "'Quicksand', sans-serif"
           }}>
@@ -899,8 +903,18 @@ export default function App() {
           </h1>
         </div>
 
-        <div style={{ minHeight: 0, flex: '0 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <GlassCard style={{ marginBottom: '24px', width: '100%', maxWidth: '400px' }}>
+        {/* Center: Timer & Mascot - Flexible wrapper that can scale down */}
+        <div style={{
+          flexGrow: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          maxWidth: '400px'
+        }}>
+          <GlassCard style={{ width: '100%', padding: '24px' }}>
             <InteractiveTimerRing
               minutes={timerMinutes}
               onMinutesChange={setTimerMinutes}
@@ -909,22 +923,23 @@ export default function App() {
               totalSeconds={timerMinutes * 60}
             />
 
-            <div style={{ margin: '32px 0', display: 'flex', justifyContent: 'center' }}>
-              <SproutCharacter size={120} level={userData.level} />
+            <div style={{ margin: '24px 0 16px', display: 'flex', justifyContent: 'center' }}>
+              <SproutCharacter size={100} level={userData.level} />
             </div>
 
             <div style={{
               background: 'rgba(255, 255, 255, 0.5)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
-              padding: '8px 20px',
+              padding: '6px 16px',
               borderRadius: '20px',
               boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
               fontSize: '13px',
               fontWeight: 600,
               color: 'rgba(100, 100, 150, 1)',
               display: 'inline-block',
-              fontFamily: "'Quicksand', sans-serif"
+              fontFamily: "'Quicksand', sans-serif",
+              textAlign: 'center'
             }}>
               {getCharacterStage(userData.level) === 0 && 'Seedling'}
               {getCharacterStage(userData.level) === 1 && 'Toddler'}
@@ -935,7 +950,16 @@ export default function App() {
           </GlassCard>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto', width: '100%' }}>
+        {/* Bottom: Buttons with buffer to avoid nav overlap */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          maxWidth: '300px',
+          width: '100%',
+          marginBottom: '6rem', // Buffer to ensure no overlap with floating nav
+          flexShrink: 0
+        }}>
           {!isRunning ? (
             <SoftButton text="Start Focus" icon={Play} onClick={() => setIsRunning(true)} variant="primary" />
           ) : (
@@ -1176,9 +1200,10 @@ export default function App() {
         bottom: 32,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 100,
+        zIndex: 1000,
         display: 'flex',
         justifyContent: 'center',
+        pointerEvents: 'none', // Allow clicks to pass through container
       }}>
         <motion.div
           initial={{ y: 100, opacity: 0 }}
@@ -1194,6 +1219,7 @@ export default function App() {
             display: 'flex',
             gap: '8px',
             padding: '12px 20px',
+            pointerEvents: 'auto', // Re-enable clicks only on nav itself
           }}
         >
           {[
