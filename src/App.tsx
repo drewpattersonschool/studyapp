@@ -730,8 +730,8 @@ const InteractiveTimerRing: React.FC<{
   timeLeft: number;
   totalSeconds: number;
 }> = ({ minutes, onMinutesChange, isRunning, timeLeft, totalSeconds }) => {
-  const size = 240;
-  const strokeWidth = 6;
+  const size = 192; // 80% of original 240px for mobile optimization
+  const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const centerX = size / 2;
@@ -825,18 +825,18 @@ const InteractiveTimerRing: React.FC<{
           animate={{ x: 0, y: 0 }}
         >
           <div style={{
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             borderRadius: '50%',
             background: 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            border: '3px solid rgba(167, 139, 250, 0.6)',
+            border: '2.5px solid rgba(167, 139, 250, 0.6)',
             boxShadow: '0 4px 20px rgba(167, 139, 250, 0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: 700,
             color: 'rgba(139, 92, 246, 0.9)',
             fontFamily: "'Quicksand', sans-serif"
@@ -854,7 +854,7 @@ const InteractiveTimerRing: React.FC<{
           animate={{ scale: [1, 1.01, 1] }}
           transition={{ duration: 1 }}
           style={{
-            fontSize: '3rem',
+            fontSize: '2.5rem',
             margin: 0,
             color: 'rgba(100, 100, 150, 0.9)',
             fontFamily: "'Quicksand', sans-serif",
@@ -869,9 +869,9 @@ const InteractiveTimerRing: React.FC<{
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-              fontSize: '13px',
+              fontSize: '12px',
               color: 'rgba(100, 100, 150, 0.6)',
-              marginTop: '6px',
+              marginTop: '4px',
               fontFamily: "'Quicksand', sans-serif",
               fontWeight: 500
             }}
@@ -1164,21 +1164,21 @@ export default function App() {
   const renderContent = () => {
     if (activeTab === 'Timer') return (
       <div style={{
-        height: '100vh',
-        maxHeight: '100vh',
+        height: '100dvh',
+        maxHeight: '100dvh',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '2rem 1.5rem',
+        padding: '1.5rem 1.25rem 0',
         position: 'relative',
         zIndex: 1
       }}>
         {/* Top: Header */}
-        <div style={{ width: '100%', textAlign: 'center' }}>
+        <div style={{ width: '100%', textAlign: 'center', flexShrink: 0 }}>
           <h1 style={{
-            fontSize: '1.5rem',
+            fontSize: '1.25rem',
             fontWeight: 500,
             color: 'rgba(100, 100, 150, 0.8)',
             margin: 0,
@@ -1198,9 +1198,10 @@ export default function App() {
           alignItems: 'center',
           justifyContent: 'center',
           width: '100%',
-          maxWidth: '400px'
+          maxWidth: '400px',
+          overflow: 'hidden'
         }}>
-          <GlassCard style={{ width: '100%', padding: '24px' }}>
+          <GlassCard style={{ width: '100%', padding: '20px 16px' }}>
             <InteractiveTimerRing
               minutes={timerMinutes}
               onMinutesChange={setTimerMinutes}
@@ -1209,56 +1210,137 @@ export default function App() {
               totalSeconds={timerMinutes * 60}
             />
 
-            <div style={{ margin: '24px 0 16px', display: 'flex', justifyContent: 'center' }}>
-              <SproutCharacter size={100} level={userData.level} />
-            </div>
-
+            {/* Mascot Container with strict height limit */}
             <div style={{
-              background: 'rgba(255, 255, 255, 0.5)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              padding: '6px 16px',
-              borderRadius: '20px',
-              boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'rgba(100, 100, 150, 1)',
-              display: 'inline-block',
-              fontFamily: "'Quicksand', sans-serif",
-              textAlign: 'center'
+              maxHeight: '25vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '16px 0 12px',
+              overflow: 'hidden'
             }}>
-              {getCharacterStage(userData.level) === 0 && 'Bean'}
-              {getCharacterStage(userData.level) === 1 && 'Pear'}
-              {getCharacterStage(userData.level) === 2 && 'Bloom'}
-              {getCharacterStage(userData.level) === 3 && 'Transcendent'}
-              {' · Level '}{userData.level}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                transform: 'scale(0.85)',
+                transformOrigin: 'center'
+              }}>
+                <SproutCharacter size={80} level={userData.level} />
+              </div>
+
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.5)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                padding: '4px 12px',
+                borderRadius: '16px',
+                boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'rgba(100, 100, 150, 1)',
+                display: 'inline-block',
+                fontFamily: "'Quicksand', sans-serif",
+                textAlign: 'center',
+                marginTop: '8px'
+              }}>
+                {getCharacterStage(userData.level) === 0 && 'Bean'}
+                {getCharacterStage(userData.level) === 1 && 'Pear'}
+                {getCharacterStage(userData.level) === 2 && 'Bloom'}
+                {getCharacterStage(userData.level) === 3 && 'Transcendent'}
+                {' · Lvl '}{userData.level}
+              </div>
             </div>
           </GlassCard>
         </div>
 
-        {/* Bottom: Buttons with buffer to avoid nav overlap */}
+        {/* Bottom: Action Zone (Buttons + Nav) */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
-          maxWidth: '300px',
+          gap: '0.5rem',
           width: '100%',
-          marginBottom: '6rem', // Buffer to ensure no overlap with floating nav
-          flexShrink: 0
+          maxWidth: '400px',
+          flexShrink: 0,
+          paddingBottom: '2rem'
         }}>
-          {!isRunning ? (
-            <SoftButton text="Start Focus" icon={Play} onClick={() => setIsRunning(true)} variant="primary" />
-          ) : (
-            <>
-              <SoftButton text="Pause" icon={Pause} onClick={() => setIsRunning(false)} variant="secondary" />
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1 }}>
-                  <SoftButton text="Complete" onClick={handleCompleteSession} variant="primary" />
+          {/* Start/Stop Buttons */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            maxWidth: '280px',
+            width: '100%',
+            margin: '0 auto'
+          }}>
+            {!isRunning ? (
+              <SoftButton text="Start Focus" icon={Play} onClick={() => setIsRunning(true)} variant="primary" />
+            ) : (
+              <>
+                <SoftButton text="Pause" icon={Pause} onClick={() => setIsRunning(false)} variant="secondary" />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <SoftButton text="Complete" onClick={handleCompleteSession} variant="primary" />
+                  </div>
+                  <SoftButton icon={RotateCcw} onClick={() => setIsRunning(false)} variant="ghost" />
                 </div>
-                <SoftButton icon={RotateCcw} onClick={() => setIsRunning(false)} variant="ghost" />
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
+
+          {/* Navigation Bar - Integrated into layout */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '0.5rem'
+          }}>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={SOFT_SPRING}
+              style={{
+                background: 'rgba(255, 255, 255, 0.6)',
+                backdropFilter: 'blur(25px)',
+                WebkitBackdropFilter: 'blur(25px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '30px',
+                boxShadow: '0 8px 32px rgba(147, 197, 253, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
+                display: 'flex',
+                gap: '8px',
+                padding: '10px 16px',
+              }}
+            >
+              {[
+                { id: 'Timer', icon: Home },
+                { id: 'Stats', icon: BarChart2 },
+                { id: 'Avatar', icon: User },
+                { id: 'Settings', icon: SettingsIcon }
+              ].map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <motion.div
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    whileTap={GENTLE_PRESS}
+                    transition={SOFT_SPRING}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '8px',
+                      borderRadius: '14px',
+                      background: isActive ? 'rgba(167, 139, 250, 0.2)' : 'transparent',
+                      boxShadow: isActive ? '0 4px 15px rgba(167, 139, 250, 0.2)' : 'none',
+                    }}
+                  >
+                    <tab.icon
+                      color={isActive ? 'rgba(139, 92, 246, 0.9)' : 'rgba(100, 100, 150, 0.5)'}
+                      size={20}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </div>
         </div>
       </div>
     );
@@ -1571,69 +1653,72 @@ export default function App() {
         maxWidth: '480px',
         margin: '0 auto',
         position: 'relative',
-        height: activeTab === 'Timer' ? '100vh' : 'auto'
+        height: activeTab === 'Timer' ? '100dvh' : 'auto'
       }}>
         {renderContent()}
       </div>
 
-      <div style={{
-        position: 'fixed',
-        bottom: 32,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 1000,
-        display: 'flex',
-        justifyContent: 'center',
-        pointerEvents: 'none', // Allow clicks to pass through container
-      }}>
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={SOFT_SPRING}
-          style={{
-            background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(25px)',
-            WebkitBackdropFilter: 'blur(25px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '30px',
-            boxShadow: '0 8px 32px rgba(147, 197, 253, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
-            display: 'flex',
-            gap: '8px',
-            padding: '12px 20px',
-            pointerEvents: 'auto', // Re-enable clicks only on nav itself
-          }}
-        >
-          {[
-            { id: 'Timer', icon: Home },
-            { id: 'Stats', icon: BarChart2 },
-            { id: 'Avatar', icon: User },
-            { id: 'Settings', icon: SettingsIcon }
-          ].map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <motion.div
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                whileTap={GENTLE_PRESS}
-                transition={SOFT_SPRING}
-                style={{
-                  cursor: 'pointer',
-                  padding: '10px',
-                  borderRadius: '16px',
-                  background: isActive ? 'rgba(167, 139, 250, 0.2)' : 'transparent',
-                  boxShadow: isActive ? '0 4px 15px rgba(167, 139, 250, 0.2)' : 'none',
-                }}
-              >
-                <tab.icon
-                  color={isActive ? 'rgba(139, 92, 246, 0.9)' : 'rgba(100, 100, 150, 0.5)'}
-                  size={22}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </div>
+      {/* Fixed Navigation - Only show for non-Timer tabs */}
+      {activeTab !== 'Timer' && (
+        <div style={{
+          position: 'fixed',
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={SOFT_SPRING}
+            style={{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(25px)',
+              WebkitBackdropFilter: 'blur(25px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '30px',
+              boxShadow: '0 8px 32px rgba(147, 197, 253, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
+              display: 'flex',
+              gap: '8px',
+              padding: '12px 20px',
+              pointerEvents: 'auto',
+            }}
+          >
+            {[
+              { id: 'Timer', icon: Home },
+              { id: 'Stats', icon: BarChart2 },
+              { id: 'Avatar', icon: User },
+              { id: 'Settings', icon: SettingsIcon }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <motion.div
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  whileTap={GENTLE_PRESS}
+                  transition={SOFT_SPRING}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '10px',
+                    borderRadius: '16px',
+                    background: isActive ? 'rgba(167, 139, 250, 0.2)' : 'transparent',
+                    boxShadow: isActive ? '0 4px 15px rgba(167, 139, 250, 0.2)' : 'none',
+                  }}
+                >
+                  <tab.icon
+                    color={isActive ? 'rgba(139, 92, 246, 0.9)' : 'rgba(100, 100, 150, 0.5)'}
+                    size={22}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }
