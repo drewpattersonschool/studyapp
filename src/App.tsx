@@ -63,7 +63,7 @@ const updateStreak = () => {
 
 // --- GAME LOGIC ---
 const calculateXpForLevel = (level: number) => {
-  return 100 * level; // Level 1 needs 100 XP, Level 2 needs 200 XP, etc.
+  return 100 * level;
 };
 
 const getCharacterStage = (level: number) => {
@@ -74,9 +74,9 @@ const getCharacterStage = (level: number) => {
 };
 
 const getBackgroundTheme = (level: number) => {
-  if (level < 10) return 'morning'; // Cyan/Mint/Lavender
-  if (level < 20) return 'twilight'; // Purple/Pink/Indigo
-  return 'golden'; // Gold/Orange/Amber
+  if (level < 10) return 'morning';
+  if (level < 20) return 'twilight';
+  return 'golden';
 };
 
 // --- SOFT ANIMATIONS ---
@@ -88,92 +88,66 @@ const BACKGROUND_THEMES = {
   morning: {
     gradient: 'linear-gradient(180deg, #F0F4FF 0%, #F5F0FF 50%, #F0FFF5 100%)',
     orbs: [
-      { color: 'rgba(230, 210, 255, 0.4)', size: 500 },
-      { color: 'rgba(200, 255, 230, 0.35)', size: 450 },
-      { color: 'rgba(200, 230, 255, 0.38)', size: 480 }
+      { color: 'rgba(230, 210, 255, 0.4)', size: 500, x: '10%', y: '10%' },
+      { color: 'rgba(200, 255, 230, 0.4)', size: 450, x: '70%', y: '30%' },
+      { color: 'rgba(200, 230, 255, 0.4)', size: 480, x: '40%', y: '70%' },
+      { color: 'rgba(255, 220, 240, 0.4)', size: 420, x: '80%', y: '60%' }
     ]
   },
   twilight: {
     gradient: 'linear-gradient(180deg, #1E1B4B 0%, #4C1D95 50%, #831843 100%)',
     orbs: [
-      { color: 'rgba(167, 139, 250, 0.3)', size: 500 },
-      { color: 'rgba(236, 72, 153, 0.25)', size: 450 },
-      { color: 'rgba(99, 102, 241, 0.28)', size: 480 }
+      { color: 'rgba(167, 139, 250, 0.4)', size: 500, x: '10%', y: '10%' },
+      { color: 'rgba(236, 72, 153, 0.4)', size: 450, x: '70%', y: '30%' },
+      { color: 'rgba(99, 102, 241, 0.4)', size: 480, x: '40%', y: '70%' },
+      { color: 'rgba(219, 39, 119, 0.4)', size: 420, x: '80%', y: '60%' }
     ]
   },
   golden: {
     gradient: 'linear-gradient(180deg, #FEF3C7 0%, #FDE68A 50%, #FBBF24 100%)',
     orbs: [
-      { color: 'rgba(251, 191, 36, 0.3)', size: 500 },
-      { color: 'rgba(249, 115, 22, 0.25)', size: 450 },
-      { color: 'rgba(245, 158, 11, 0.28)', size: 480 }
+      { color: 'rgba(251, 191, 36, 0.4)', size: 500, x: '10%', y: '10%' },
+      { color: 'rgba(249, 115, 22, 0.4)', size: 450, x: '70%', y: '30%' },
+      { color: 'rgba(245, 158, 11, 0.4)', size: 480, x: '40%', y: '70%' },
+      { color: 'rgba(251, 146, 60, 0.4)', size: 420, x: '80%', y: '60%' }
     ]
   }
 };
 
-// --- ANIMATED MESH GRADIENT BACKGROUND ---
-const AnimatedMeshGradient: React.FC<{ theme: 'morning' | 'twilight' | 'golden' }> = ({ theme }) => {
+// --- LIVING AURORA MESH BACKGROUND ---
+const LivingAuroraBackground: React.FC<{ theme: 'morning' | 'twilight' | 'golden' }> = ({ theme }) => {
   const orbs = BACKGROUND_THEMES[theme].orbs;
 
   return (
     <>
-      <motion.div
-        animate={{
-          x: [0, 150, -100, 0],
-          y: [0, -100, 150, 0],
-          scale: [1, 1.2, 0.8, 1],
-        }}
-        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: 'absolute',
-          top: '5%',
-          left: '15%',
-          width: orbs[0].size,
-          height: orbs[0].size,
-          background: `radial-gradient(circle, ${orbs[0].color} 0%, transparent 70%)`,
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-          zIndex: 0
-        }}
-      />
-      <motion.div
-        animate={{
-          x: [0, -130, 120, 0],
-          y: [0, 120, -90, 0],
-          scale: [1, 0.9, 1.1, 1],
-        }}
-        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: 'absolute',
-          top: '40%',
-          right: '10%',
-          width: orbs[1].size,
-          height: orbs[1].size,
-          background: `radial-gradient(circle, ${orbs[1].color} 0%, transparent 70%)`,
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-          zIndex: 0
-        }}
-      />
-      <motion.div
-        animate={{
-          x: [0, 100, -140, 0],
-          y: [0, -130, 80, 0],
-          scale: [1, 1.1, 0.85, 1],
-        }}
-        transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: 'absolute',
-          bottom: '10%',
-          left: '50%',
-          width: orbs[2].size,
-          height: orbs[2].size,
-          background: `radial-gradient(circle, ${orbs[2].color} 0%, transparent 70%)`,
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-          zIndex: 0
-        }}
-      />
+      {orbs.map((orb, index) => (
+        <motion.div
+          key={index}
+          animate={{
+            x: [0, 80 * (index % 2 ? 1 : -1), -60 * (index % 2 ? 1 : -1), 0],
+            y: [0, -70 * (index % 2 ? -1 : 1), 90 * (index % 2 ? -1 : 1), 0],
+            scale: [1, 1.15, 0.9, 1],
+            opacity: [0.4, 0.5, 0.3, 0.4]
+          }}
+          transition={{
+            duration: 20 + index * 5,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 2
+          }}
+          style={{
+            position: 'absolute',
+            left: orb.x,
+            top: orb.y,
+            width: orb.size,
+            height: orb.size,
+            background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
+            filter: 'blur(80px)',
+            pointerEvents: 'none',
+            zIndex: 0
+          }}
+        />
+      ))}
     </>
   );
 };
@@ -182,20 +156,18 @@ const AnimatedMeshGradient: React.FC<{ theme: 'morning' | 'twilight' | 'golden' 
 const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 120, level }) => {
   const [isBlinking, setIsBlinking] = useState(false);
   const stage = getCharacterStage(level);
-  const scale = 1 + (stage * 0.2); // Grows 20% per stage
+  const scale = 1 + (stage * 0.2);
 
-  // Random blink effect
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setIsBlinking(true);
       setTimeout(() => setIsBlinking(false), 150);
-    }, Math.random() * 2000 + 3000); // 3-5s
+    }, Math.random() * 2000 + 3000);
 
     return () => clearInterval(blinkInterval);
   }, []);
 
-  // Stage-based colors
-  const leafColor = stage === 3 ? "#FCD34D" : "#10B981"; // Golden leaves for Stage 4
+  const leafColor = stage === 3 ? "#FCD34D" : "#10B981";
   const leafDarkColor = stage === 3 ? "#F59E0B" : "#059669";
 
   return (
@@ -213,22 +185,18 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
       }}
     >
       <defs>
-        {/* Body Gradient - 3D Shiny Effect */}
         <radialGradient id="bodyGradient" cx="45%" cy="35%">
           <stop offset="0%" stopColor="#D9F99D" />
           <stop offset="50%" stopColor="#A3E635" />
           <stop offset="100%" stopColor="#65A30D" />
         </radialGradient>
-        {/* Golden Halo Gradient */}
         <radialGradient id="haloGradient" cx="50%" cy="50%">
           <stop offset="0%" stopColor="rgba(251, 191, 36, 0.6)" />
           <stop offset="100%" stopColor="rgba(251, 191, 36, 0)" />
         </radialGradient>
-        {/* Shadow */}
         <ellipse id="shadow" cx="50" cy="88" rx="22" ry="6" fill="rgba(0,0,0,0.15)" />
       </defs>
 
-      {/* Stage 4: Golden Halo/Aura (Behind everything) */}
       {stage === 3 && (
         <motion.circle
           cx="50"
@@ -243,10 +211,8 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         />
       )}
 
-      {/* Shadow */}
       <use href="#shadow" />
 
-      {/* Body - Organic bean/pear shape */}
       <motion.path
         d="M 35 42 Q 30 50, 32 62 Q 35 72, 42 77 Q 50 80, 58 77 Q 65 72, 68 62 Q 70 50, 65 42 Q 60 32, 50 30 Q 40 32, 35 42 Z"
         fill="url(#bodyGradient)"
@@ -260,7 +226,6 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Stage 2+: Left Arm Nub */}
       {stage >= 1 && (
         <motion.ellipse
           cx="28"
@@ -276,7 +241,6 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         />
       )}
 
-      {/* Stage 2+: Right Arm Nub */}
       {stage >= 1 && (
         <motion.ellipse
           cx="72"
@@ -292,7 +256,6 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         />
       )}
 
-      {/* Left Leaf - Grows bigger in Stage 2+ */}
       <motion.g
         animate={{
           rotate: [-5, 5, -5],
@@ -319,7 +282,6 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         />
       </motion.g>
 
-      {/* Right Leaf - Grows bigger in Stage 2+ */}
       <motion.g
         animate={{
           rotate: [5, -5, 5],
@@ -346,7 +308,6 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
         />
       </motion.g>
 
-      {/* Stage 3: Pink Flower on top of head */}
       {stage === 2 && (
         <motion.g
           animate={{
@@ -355,18 +316,15 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
           }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Flower Petals */}
           <circle cx="50" cy="18" r="4" fill="#FCA5A5" />
           <circle cx="45" cy="20" r="4" fill="#FCA5A5" />
           <circle cx="55" cy="20" r="4" fill="#FCA5A5" />
           <circle cx="47" cy="24" r="4" fill="#FCA5A5" />
           <circle cx="53" cy="24" r="4" fill="#FCA5A5" />
-          {/* Flower Center */}
           <circle cx="50" cy="21" r="3" fill="#FDE047" />
         </motion.g>
       )}
 
-      {/* Left Eye */}
       <motion.g>
         <motion.ellipse
           cx="42"
@@ -377,20 +335,11 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
           animate={{ ry: isBlinking ? 0.3 : 4.5 }}
           transition={{ duration: 0.1 }}
         />
-        {/* Eye Reflection */}
         {!isBlinking && (
-          <ellipse
-            cx="43"
-            cy="50.5"
-            rx="1.2"
-            ry="1.5"
-            fill="white"
-            opacity="0.9"
-          />
+          <ellipse cx="43" cy="50.5" rx="1.2" ry="1.5" fill="white" opacity="0.9" />
         )}
       </motion.g>
 
-      {/* Right Eye */}
       <motion.g>
         <motion.ellipse
           cx="58"
@@ -401,62 +350,33 @@ const SproutCharacter: React.FC<{ size?: number; level: number }> = ({ size = 12
           animate={{ ry: isBlinking ? 0.3 : 4.5 }}
           transition={{ duration: 0.1 }}
         />
-        {/* Eye Reflection */}
         {!isBlinking && (
-          <ellipse
-            cx="59"
-            cy="50.5"
-            rx="1.2"
-            ry="1.5"
-            fill="white"
-            opacity="0.9"
-          />
+          <ellipse cx="59" cy="50.5" rx="1.2" ry="1.5" fill="white" opacity="0.9" />
         )}
       </motion.g>
 
-      {/* Smile */}
-      <path
-        d="M 40 60 Q 50 65, 60 60"
-        stroke="#065F46"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
+      <path d="M 40 60 Q 50 65, 60 60" stroke="#065F46" strokeWidth="2" strokeLinecap="round" fill="none" />
 
-      {/* Left Blush */}
-      <ellipse
-        cx="35"
-        cy="57"
-        rx="4.5"
-        ry="3"
-        fill="rgba(252, 165, 165, 0.6)"
-      />
-
-      {/* Right Blush */}
-      <ellipse
-        cx="65"
-        cy="57"
-        rx="4.5"
-        ry="3"
-        fill="rgba(252, 165, 165, 0.6)"
-      />
+      <ellipse cx="35" cy="57" rx="4.5" ry="3" fill="rgba(252, 165, 165, 0.6)" />
+      <ellipse cx="65" cy="57" rx="4.5" ry="3" fill="rgba(252, 165, 165, 0.6)" />
     </motion.svg>
   );
 };
 
-// --- SOFT GLASS CARD ---
-const SoftGlassCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
+// --- GLASSMORPHISM 2.0 CARD ---
+const GlassCard: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={SOFT_SPRING}
     style={{
       background: 'rgba(255, 255, 255, 0.6)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
+      backdropFilter: 'blur(25px)',
+      WebkitBackdropFilter: 'blur(25px)',
       borderRadius: '32px',
       padding: '32px',
-      boxShadow: '0 8px 32px rgba(147, 197, 253, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.5)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      boxShadow: '0 8px 32px rgba(147, 197, 253, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
       ...style
     }}
   >
@@ -514,6 +434,7 @@ const SoftButton: React.FC<{
         fontWeight: 600,
         boxShadow: style.shadow,
         outline: 'none',
+        fontFamily: "'Quicksand', sans-serif"
       }}
     >
       {Icon && <Icon size={20} strokeWidth={2.5} />}
@@ -550,14 +471,7 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
   return (
     <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(200, 220, 255, 0.3)"
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(200, 220, 255, 0.3)" strokeWidth={strokeWidth} fill="none" />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -577,13 +491,7 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
           </linearGradient>
         </defs>
       </svg>
-      <div style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        textAlign: 'center'
-      }}>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
         <motion.h1
           key={timeLeft}
           initial={{ scale: 1 }}
@@ -593,8 +501,8 @@ const EtherealTimer: React.FC<{ totalSeconds: number; isRunning: boolean }> = ({
             fontSize: '3.5rem',
             margin: 0,
             color: 'rgba(100, 100, 150, 0.9)',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontWeight: 300,
+            fontFamily: "'Quicksand', sans-serif",
+            fontWeight: 400,
             letterSpacing: '0.05em',
           }}
         >
@@ -617,7 +525,8 @@ const XpProgressBar: React.FC<{ currentXp: number; requiredXp: number }> = ({ cu
         marginBottom: '8px',
         fontSize: '13px',
         color: 'rgba(100, 100, 150, 0.7)',
-        fontWeight: 600
+        fontWeight: 600,
+        fontFamily: "'Quicksand', sans-serif"
       }}>
         <span>{currentXp} XP</span>
         <span>{requiredXp} XP</span>
@@ -647,10 +556,10 @@ const XpProgressBar: React.FC<{ currentXp: number; requiredXp: number }> = ({ cu
 // --- EVOLUTION STAGES GRID ---
 const EvolutionStages: React.FC<{ currentLevel: number }> = ({ currentLevel }) => {
   const stages = [
-    { name: 'Seed', level: 0, emoji: '🌰' },
-    { name: 'Sprout', level: 5, emoji: '🌱' },
-    { name: 'Flower', level: 15, emoji: '🌸' },
-    { name: 'Tree', level: 30, emoji: '🌳' }
+    { name: 'Seedling', level: 0, emoji: '🌱' },
+    { name: 'Toddler', level: 5, emoji: '🌿' },
+    { name: 'Bloomer', level: 10, emoji: '🌸' },
+    { name: 'Guardian', level: 20, emoji: '✨' }
   ];
 
   return (
@@ -667,17 +576,13 @@ const EvolutionStages: React.FC<{ currentLevel: number }> = ({ currentLevel }) =
             key={i}
             whileHover={{ scale: isUnlocked ? 1.05 : 1 }}
             style={{
-              background: isUnlocked
-                ? 'rgba(255, 255, 255, 0.5)'
-                : 'rgba(200, 220, 255, 0.2)',
+              background: isUnlocked ? 'rgba(255, 255, 255, 0.5)' : 'rgba(200, 220, 255, 0.2)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
               padding: '20px',
               borderRadius: '20px',
               textAlign: 'center',
-              boxShadow: isUnlocked
-                ? '0 4px 15px rgba(167, 139, 250, 0.2)'
-                : '0 2px 10px rgba(147, 197, 253, 0.1)',
+              boxShadow: isUnlocked ? '0 4px 15px rgba(167, 139, 250, 0.2)' : '0 2px 10px rgba(147, 197, 253, 0.1)',
               opacity: isUnlocked ? 1 : 0.5,
               cursor: isUnlocked ? 'default' : 'not-allowed'
             }}
@@ -689,13 +594,15 @@ const EvolutionStages: React.FC<{ currentLevel: number }> = ({ currentLevel }) =
               fontSize: '14px',
               fontWeight: 600,
               color: 'rgba(100, 100, 150, 0.8)',
-              marginBottom: '4px'
+              marginBottom: '4px',
+              fontFamily: "'Quicksand', sans-serif"
             }}>
               {stage.name}
             </div>
             <div style={{
               fontSize: '12px',
-              color: 'rgba(100, 100, 150, 0.6)'
+              color: 'rgba(100, 100, 150, 0.6)',
+              fontFamily: "'Quicksand', sans-serif"
             }}>
               Level {stage.level}+
             </div>
@@ -723,12 +630,10 @@ const SoftStatsChart: React.FC = () => {
                 ? 'linear-gradient(180deg, rgba(167, 139, 250, 0.6) 0%, rgba(167, 139, 250, 0.3) 100%)'
                 : 'linear-gradient(180deg, rgba(147, 197, 253, 0.6) 0%, rgba(147, 197, 253, 0.3) 100%)',
               borderRadius: '12px',
-              boxShadow: i % 2 === 0
-                ? '0 4px 15px rgba(167, 139, 250, 0.2)'
-                : '0 4px 15px rgba(147, 197, 253, 0.2)',
+              boxShadow: i % 2 === 0 ? '0 4px 15px rgba(167, 139, 250, 0.2)' : '0 4px 15px rgba(147, 197, 253, 0.2)',
             }}
           />
-          <span style={{ fontSize: '12px', color: 'rgba(100, 100, 150, 0.7)', fontWeight: 600 }}>
+          <span style={{ fontSize: '12px', color: 'rgba(100, 100, 150, 0.7)', fontWeight: 600, fontFamily: "'Quicksand', sans-serif" }}>
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'][i]}
           </span>
         </div>
@@ -788,7 +693,6 @@ export default function App() {
     updateStreak();
     setIsRunning(false);
 
-    // Award XP
     const xpGained = 100;
     const newXp = userData.xp + xpGained;
     const requiredXp = calculateXpForLevel(userData.level);
@@ -796,7 +700,6 @@ export default function App() {
     let newLevel = userData.level;
     let remainingXp = newXp;
 
-    // Level up if needed
     if (newXp >= requiredXp) {
       newLevel = userData.level + 1;
       remainingXp = newXp - requiredXp;
@@ -825,50 +728,59 @@ export default function App() {
 
   const renderContent = () => {
     if (activeTab === 'Timer') return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={SOFT_SPRING}
-        style={{ padding: '40px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
-      >
-        <h1 style={{
-          fontSize: '1.5rem',
-          fontWeight: 300,
-          color: 'rgba(100, 100, 150, 0.8)',
-          marginBottom: '40px',
-          letterSpacing: '0.1em'
-        }}>
-          Focus Session
-        </h1>
-
-        <SoftGlassCard style={{ marginBottom: '24px' }}>
-          <EtherealTimer totalSeconds={1500} isRunning={isRunning} />
-
-          <div style={{ margin: '32px 0', display: 'flex', justifyContent: 'center' }}>
-            <SproutCharacter size={120} level={userData.level} />
-          </div>
-
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.5)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            padding: '8px 20px',
-            borderRadius: '20px',
-            boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'rgba(100, 100, 150, 1)',
-            display: 'inline-block'
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '40px 24px 24px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <div>
+          <h1 style={{
+            fontSize: '1.5rem',
+            fontWeight: 500,
+            color: 'rgba(100, 100, 150, 0.8)',
+            marginBottom: '32px',
+            letterSpacing: '0.05em',
+            fontFamily: "'Quicksand', sans-serif"
           }}>
-            {getCharacterStage(userData.level) === 0 && 'Seed'}
-            {getCharacterStage(userData.level) === 1 && 'Sprout'}
-            {getCharacterStage(userData.level) === 2 && 'Flower'}
-            {getCharacterStage(userData.level) === 3 && 'Tree'}
-            {' · Level '}{userData.level}
-          </div>
-        </SoftGlassCard>
+            Focus Session
+          </h1>
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto' }}>
+        <div style={{ minHeight: 0, flex: '0 1 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <GlassCard style={{ marginBottom: '24px', width: '100%', maxWidth: '400px' }}>
+            <EtherealTimer totalSeconds={1500} isRunning={isRunning} />
+
+            <div style={{ margin: '32px 0', display: 'flex', justifyContent: 'center' }}>
+              <SproutCharacter size={120} level={userData.level} />
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              padding: '8px 20px',
+              borderRadius: '20px',
+              boxShadow: '0 4px 15px rgba(147, 197, 253, 0.2)',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'rgba(100, 100, 150, 1)',
+              display: 'inline-block',
+              fontFamily: "'Quicksand', sans-serif"
+            }}>
+              {getCharacterStage(userData.level) === 0 && 'Seedling'}
+              {getCharacterStage(userData.level) === 1 && 'Toddler'}
+              {getCharacterStage(userData.level) === 2 && 'Bloomer'}
+              {getCharacterStage(userData.level) === 3 && 'Guardian'}
+              {' · Level '}{userData.level}
+            </div>
+          </GlassCard>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto', width: '100%' }}>
           {!isRunning ? (
             <SoftButton text="Start Focus" icon={Play} onClick={() => setIsRunning(true)} variant="primary" />
           ) : (
@@ -883,7 +795,7 @@ export default function App() {
             </>
           )}
         </div>
-      </motion.div>
+      </div>
     );
 
     if (activeTab === 'Stats') return (
@@ -891,26 +803,27 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={SOFT_SPRING}
-        style={{ padding: '40px 24px', position: 'relative', zIndex: 1 }}
+        style={{ padding: '40px 24px 160px', position: 'relative', zIndex: 1 }}
       >
         <h1 style={{
           fontSize: '1.5rem',
-          fontWeight: 300,
+          fontWeight: 500,
           color: 'rgba(100, 100, 150, 0.8)',
           marginBottom: '32px',
-          letterSpacing: '0.1em'
+          letterSpacing: '0.05em',
+          fontFamily: "'Quicksand', sans-serif"
         }}>
           Statistics
         </h1>
 
-        <SoftGlassCard style={{ marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', color: 'rgba(100, 100, 150, 0.8)', fontWeight: 600 }}>
+        <GlassCard style={{ marginBottom: '20px' }}>
+          <h3 style={{ margin: '0 0 24px 0', fontSize: '16px', color: 'rgba(100, 100, 150, 0.8)', fontWeight: 600, fontFamily: "'Quicksand', sans-serif" }}>
             Weekly Activity
           </h3>
           <SoftStatsChart />
-        </SoftGlassCard>
+        </GlassCard>
 
-        <SoftGlassCard>
+        <GlassCard>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{
               width: 48,
@@ -925,15 +838,15 @@ export default function App() {
               <User size={24} color="rgba(139, 92, 246, 0.8)" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(100, 100, 150, 0.9)' }}>
+              <div style={{ fontSize: '18px', fontWeight: 600, color: 'rgba(100, 100, 150, 0.9)', fontFamily: "'Quicksand', sans-serif" }}>
                 {userData.sessionsCompleted} Sessions
               </div>
-              <div style={{ fontSize: '14px', color: 'rgba(100, 100, 150, 0.6)' }}>
+              <div style={{ fontSize: '14px', color: 'rgba(100, 100, 150, 0.6)', fontFamily: "'Quicksand', sans-serif" }}>
                 Total Completed
               </div>
             </div>
           </div>
-        </SoftGlassCard>
+        </GlassCard>
       </motion.div>
     );
 
@@ -942,25 +855,24 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={SOFT_SPRING}
-        style={{ padding: '40px 24px', textAlign: 'center', position: 'relative', zIndex: 1 }}
+        style={{ padding: '40px 24px 160px', textAlign: 'center', position: 'relative', zIndex: 1 }}
       >
         <h1 style={{
           fontSize: '1.5rem',
-          fontWeight: 300,
+          fontWeight: 500,
           color: 'rgba(100, 100, 150, 0.8)',
           marginBottom: '32px',
-          letterSpacing: '0.1em'
+          letterSpacing: '0.05em',
+          fontFamily: "'Quicksand', sans-serif"
         }}>
           Your Character
         </h1>
 
-        <SoftGlassCard>
-          {/* Character */}
+        <GlassCard>
           <div style={{ marginBottom: '32px' }}>
             <SproutCharacter size={160} level={userData.level} />
           </div>
 
-          {/* Level Badge */}
           <div style={{
             background: 'rgba(255, 255, 255, 0.5)',
             backdropFilter: 'blur(10px)',
@@ -971,20 +883,14 @@ export default function App() {
             boxShadow: '0 4px 15px rgba(167, 139, 250, 0.2)',
             display: 'inline-block'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: 'rgba(100, 100, 150, 0.9)' }}>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'rgba(100, 100, 150, 0.9)', fontFamily: "'Quicksand', sans-serif" }}>
               Level {userData.level}
             </div>
           </div>
 
-          {/* XP Progress */}
-          <XpProgressBar
-            currentXp={userData.xp}
-            requiredXp={calculateXpForLevel(userData.level)}
-          />
-
-          {/* Evolution Stages */}
+          <XpProgressBar currentXp={userData.xp} requiredXp={calculateXpForLevel(userData.level)} />
           <EvolutionStages currentLevel={userData.level} />
-        </SoftGlassCard>
+        </GlassCard>
       </motion.div>
     );
 
@@ -993,19 +899,20 @@ export default function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={SOFT_SPRING}
-        style={{ padding: '40px 24px', position: 'relative', zIndex: 1 }}
+        style={{ padding: '40px 24px 160px', position: 'relative', zIndex: 1 }}
       >
         <h1 style={{
           fontSize: '1.5rem',
-          fontWeight: 300,
+          fontWeight: 500,
           color: 'rgba(100, 100, 150, 0.8)',
           marginBottom: '32px',
-          letterSpacing: '0.1em'
+          letterSpacing: '0.05em',
+          fontFamily: "'Quicksand', sans-serif"
         }}>
           Settings
         </h1>
 
-        <SoftGlassCard style={{ marginBottom: '20px' }}>
+        <GlassCard style={{ marginBottom: '20px' }}>
           {[
             { icon: Volume2, label: 'Sound', enabled: false, toggle: () => { } },
             { icon: Bell, label: 'Notifications', enabled: false, toggle: () => { } },
@@ -1023,21 +930,21 @@ export default function App() {
               }}
             >
               <item.icon size={20} color="rgba(100, 100, 150, 0.7)" strokeWidth={2.5} />
-              <span style={{ marginLeft: 16, flex: 1, color: 'rgba(100, 100, 150, 0.8)', fontSize: '16px', fontWeight: 500 }}>
+              <span style={{ marginLeft: 16, flex: 1, color: 'rgba(100, 100, 150, 0.8)', fontSize: '16px', fontWeight: 500, fontFamily: "'Quicksand', sans-serif" }}>
                 {item.label}
               </span>
               <SoftToggle enabled={item.enabled} onToggle={item.toggle} />
             </motion.div>
           ))}
-        </SoftGlassCard>
+        </GlassCard>
 
-        {/* Developer Tools */}
-        <SoftGlassCard>
+        <GlassCard>
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '16px',
             color: 'rgba(100, 100, 150, 0.8)',
-            fontWeight: 600
+            fontWeight: 600,
+            fontFamily: "'Quicksand', sans-serif"
           }}>
             Developer Tools
           </h3>
@@ -1049,7 +956,8 @@ export default function App() {
               marginBottom: '12px',
               fontSize: '14px',
               color: 'rgba(100, 100, 150, 0.7)',
-              fontWeight: 600
+              fontWeight: 600,
+              fontFamily: "'Quicksand', sans-serif"
             }}>
               <span>Force Level</span>
               <span>Level {devLevel}</span>
@@ -1077,20 +985,19 @@ export default function App() {
             fontSize: '12px',
             color: 'rgba(100, 100, 150, 0.6)',
             textAlign: 'center',
-            marginTop: '12px'
+            marginTop: '12px',
+            fontFamily: "'Quicksand', sans-serif"
           }}>
             Current Theme: {theme === 'morning' ? '🌅 Morning' : theme === 'twilight' ? '🌆 Twilight' : '🌇 Golden Hour'}
           </div>
-        </SoftGlassCard>
+        </GlassCard>
       </motion.div>
     );
   };
 
   return (
     <motion.div
-      animate={{
-        background: BACKGROUND_THEMES[theme].gradient
-      }}
+      animate={{ background: BACKGROUND_THEMES[theme].gradient }}
       transition={{ duration: 2, ease: "easeInOut" }}
       style={{
         minHeight: '100vh',
@@ -1098,20 +1005,17 @@ export default function App() {
         overflow: 'hidden',
       }}
     >
-      {/* Animated Mesh Gradient */}
-      <AnimatedMeshGradient theme={theme} />
+      <LivingAuroraBackground theme={theme} />
 
-      {/* Content */}
       <div style={{
         maxWidth: '480px',
         margin: '0 auto',
-        paddingBottom: '120px',
         position: 'relative',
+        height: activeTab === 'Timer' ? '100vh' : 'auto'
       }}>
         {renderContent()}
       </div>
 
-      {/* Floating Glass Pill Navigation */}
       <div style={{
         position: 'fixed',
         bottom: 32,
@@ -1127,10 +1031,11 @@ export default function App() {
           transition={SOFT_SPRING}
           style={{
             background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            backdropFilter: 'blur(25px)',
+            WebkitBackdropFilter: 'blur(25px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             borderRadius: '30px',
-            boxShadow: '0 8px 32px rgba(147, 197, 253, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 8px 32px rgba(147, 197, 253, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
             display: 'flex',
             gap: '8px',
             padding: '12px 20px',
